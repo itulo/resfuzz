@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resfuzz"
+version = "0.1.0"
+description = "Host orchestrator for resfuzz, a fuzzer for QNX 8.0 resource managers"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+resfuzz = "resfuzz.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["resfuzz*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

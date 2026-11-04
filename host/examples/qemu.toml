@@ -1,0 +1,28 @@
+# Example campaign config for `resfuzz run -c host/examples/qemu.toml`.
+# Untested until the QNX SDP is installed (docs/TODO-QNX.md).
+out_dir = "resfuzz-results"
+
+[image]
+workdir = "qnx-image"            # mkqnximage works on the image in its current directory
+arch = "x86_64"                  # --arch=x86_64|aarch64le
+ssh_ident = "/home/me/.ssh/id_ed25519"   # --ssh-ident=path (public or private key? UNVERIFIED, TODO-QNX I3)
+# assumed_ip = "192.168.122.50"  # --assumed-ip, skips --getip
+
+[target]
+agent  = "target/build-qnx/resfuzz-agent"
+resmgr = "target/build-qnx/buggy_rm"
+path   = "/dev/buggy"
+spawn  = "/data/resfuzz/buggy_rm /dev/buggy"
+deploy_dir = "/data/resfuzz"     # /data is always read-write on mkqnximage images
+dump_dir   = "/data/resfuzz/cores"
+dicts = []                       # add the output of dictgen's on-target resolver here
+
+[fuzz]
+seconds = 600
+deadline_us = 5000
+hang_ms = 1000
+coverage = true
+
+[ssh]
+user = "root"
+identity = "/home/me/.ssh/id_ed25519"   # used for ssh -i / scp -i

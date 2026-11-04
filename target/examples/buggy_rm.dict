@@ -1,0 +1,16 @@
+# Dictionary for buggy_rm (hand-written; host/resfuzz/dictgen.py can regenerate
+# the dcmd lines on the target from buggy_rm.h).
+#
+# dcmd lines below carry the LINUX STUB encoding (platform/linux_compat/devctl.h)
+# and are only valid against mock_rm. For QNX, run the generated resolver on
+# the target (see docs/TODO-QNX.md) - never reuse these values there.
+dcmd DCMD_BUGGY_SET_MODE  0x40080d40 size=8  dir=to
+dcmd DCMD_BUGGY_SET_NAME  0x40200d41 size=32 dir=to
+dcmd DCMD_BUGGY_GET_NAME  0x80200d42 size=32 dir=from
+dcmd DCMD_BUGGY_GET_STATS 0xc0100d43 size=16 dir=tofrom
+dcmd DCMD_BUGGY_COMPUTE   0xc00c0d44 size=12 dir=tofrom
+dcmd DCMD_BUGGY_RESET     0x00000d45 size=0  dir=none
+magic_admin="ADMN"
+level_admin="\x02\x00\x00\x00"
+flag_slow="\x01\x00\x00\x00"
+reset="reset\x0a"

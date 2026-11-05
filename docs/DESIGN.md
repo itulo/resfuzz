@@ -1,7 +1,7 @@
 # resfuzz design
 
-QNX facts used here are cited inline. Anything not yet checked on a real SDP
-is marked **UNVERIFIED** and tracked in [TODO-QNX.md](TODO-QNX.md).
+QNX facts used here are cited inline. What was checked on a real SDP 8.0
+(QEMU x86_64 target), and what is still open, is in [TODO-QNX.md](TODO-QNX.md).
 
 ## 1. Goal and scope
 
@@ -82,7 +82,7 @@ value is rejected, so `parse(serialize(x)) == x`, and the parser is itself fuzze
   - Edges are hashed into a 64 KiB map in POSIX shared memory ([shm_open](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html)), named by `RESFUZZ_SHM`.
   - The compare log records constant operands (Arg1 for `const_cmp`, the case value for switches;
     [SanitizerCoverage](https://clang.llvm.org/docs/SanitizerCoverage.html#tracing-data-flow)). Each round, values ≥ 256 are fed back as dictionary tokens. This is how the fuzzer learns dcmd values and magic values without a dictionary.
-  - Whether QNX's gcc accepts these flags is **UNVERIFIED** (TODO C1).
+  - QNX 8.0's gcc 12.2.0 accepts these flags (verified, TODO C1).
 - **Reply signatures**, which hash (op kind, dcmd, errno class) for each executed op, are used in both modes. In **blind mode** they are the only feedback: a test case is kept if it produces a new signature.
 - **Corpus admission:** only cases whose result is OK are added. Slow (deadline) inputs are kept as findings, not as corpus entries, so they don't drag down the exec rate.
 

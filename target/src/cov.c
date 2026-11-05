@@ -3,7 +3,7 @@
  * Agent side of the coverage channel. Uses POSIX shm_open()/mmap(), which
  * QNX 8.0 documents in its C library reference:
  *   https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/s/shm_open.html
- * (UNVERIFIED on target until the SDP is installed; see docs/TODO-QNX.md.)
+ * Verified on QNX 8.0 x86_64 (QEMU): docs/TODO-QNX.md C2, C3.
  */
 #include "rf_cov.h"
 

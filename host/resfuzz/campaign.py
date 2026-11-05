@@ -6,8 +6,8 @@ LocalCampaign  - Linux only: builds the agent + mock_rm (linux-stub platform) an
                  the codelab's first section.
 QemuCampaign   - the real thing: mkqnximage QEMU image, ssh deploy, run the
                  agent on QNX, fetch results/cores, minimise, report.
-                 NOT YET RUN against QNX (SDP pending); every target-side shell
-                 command is listed in docs/TODO-QNX.md.
+                 Run end to end against QNX 8.0 x86_64 under QEMU (TCG); results
+                 and target-side findings are in docs/TODO-QNX.md.
 """
 from __future__ import annotations
 
@@ -143,12 +143,12 @@ class QemuCampaign:
     """Host side of a QNX campaign. `target` may be injected (tests use a fake)."""
 
     def __init__(self, cfg: Config, *, image: MkQnxImage | None = None, target: Target | None = None,
-                 runner: Runner = run_subprocess, gdb: str = "gdb", check_env: bool = True):
+                 runner: Runner = run_subprocess, gdb: str | None = None, check_env: bool = True):
         self.cfg = cfg
         self.runner = runner
         self.image = image or MkQnxImage(cfg.image, runner=runner)
         self.target = target
-        self.gdb = gdb
+        self.gdb = gdb or cfg.target.gdb
         self.check_env = check_env
         self.out = Path(cfg.out_dir)
         self.log: list[str] = []
@@ -185,15 +185,18 @@ class QemuCampaign:
 
     def deploy(self) -> None:
         t, q = self.target, shlex.quote
-        self._must(t.run(f"mkdir -p {q(self.rdir)} {q(self.rout)} {q(self.cfg.target.dump_dir)}"), "mkdir")
+        # Fresh result dir: the agent appends to events.jsonl, and /data persists
+        # across reboots, so a stale out/ would mix two campaigns (seen on QNX).
+        self._must(t.run(f"mkdir -p {q(self.rdir)} {q(self.cfg.target.dump_dir)} && rm -rf {q(self.rout)} "
+                         f"&& mkdir -p {q(self.rout)}"), "mkdir")
         files = [self.cfg.target.agent, self.cfg.target.resmgr] + list(self.cfg.target.dicts)
         for f in files:
             self._must(t.put(f, f"{self.rdir}/{Path(f).name}"), f"scp {Path(f).name}")
         self._must(t.run(f"chmod 755 {q(self.rdir)}/{q(Path(self.cfg.target.agent).name)} "
                          f"{q(self.rdir)}/{q(Path(self.cfg.target.resmgr).name)}"), "chmod")
         # dumper writes cores for signalled processes; -d sets the directory
-        # (utilities/topic/d/dumper.html). Whether the image already runs a
-        # dumper (and how a second instance behaves) is UNVERIFIED.
+        # (utilities/topic/d/dumper.html). mkqnximage images already run one
+        # (writing to /var/dumps); see TODO-QNX T1 for how a second one behaves.
         t.run(f"dumper -d {q(self.cfg.target.dump_dir)} </dev/null >/dev/null 2>&1 &")
 
     def agent_cmd(self, *extra: str) -> str:

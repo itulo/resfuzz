@@ -7,7 +7,8 @@ https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/m/m
   (headless; console goes to output/qemu.out), --stop, --getip, --assumed-ip,
   --ssh-ident, --wipe, --options. mkqnximage always works on the image in
   the *current directory*, hence cwd=workdir on every call.
-Supported QEMU host per that page: Ubuntu. NOT YET RUN (SDP not installed).
+Supported QEMU host per that page: Ubuntu. Run against SDP 8.0 on an Ubuntu-like
+x86_64 host (QEMU 10, TCG) - see docs/TODO-QNX.md section I.
 """
 from __future__ import annotations
 
@@ -68,15 +69,18 @@ class MkQnxImage:
         return [self.exe, "--options"]
 
     # ---- actions ----
-    def _run(self, argv, timeout=None) -> Result:
+    def _run(self, argv, timeout=None, **kw) -> Result:
         self.workdir.mkdir(parents=True, exist_ok=True)
-        return self.runner(argv, cwd=str(self.workdir), timeout=timeout)
+        return self.runner(argv, cwd=str(self.workdir), timeout=timeout, **kw)
 
     def build(self, clean: bool = False) -> Result:
         return self._run(self.build_argv(clean), timeout=3600)
 
     def start(self, headless: bool = True) -> Result:
-        return self._run(self.run_argv(headless), timeout=600)
+        # QEMU inherits stdout/stderr: capture to a file, never to a pipe.
+        (self.workdir / "output").mkdir(parents=True, exist_ok=True)
+        return self._run(self.run_argv(headless), timeout=600,
+                         log_file=str((self.workdir / "output" / "run.log").resolve()))
 
     def stop(self) -> Result:
         return self._run(self.stop_argv(), timeout=120)

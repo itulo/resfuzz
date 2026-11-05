@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
  * buggy_rm - a deliberately vulnerable QNX 8.0 resource manager at /dev/buggy.
- * NOT YET COMPILED (SDP not installed). Structure follows the QNX 8.0
+ * Built with qcc (SDP 8.0, gcc 12.2.0) and fuzzed on QNX 8.0 x86_64 under QEMU
+ * (docs/TODO-QNX.md). Structure follows the QNX 8.0
  * "Writing a Resource Manager" samples:
  *  - main loop / attach: "Sample code for handling _IO_READ messages"
  *    https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.resmgr/topic/read_write_Sample_IO_READ.html
@@ -9,7 +10,7 @@
  *  - io_devctl: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.resmgr/topic/messages_Sample_IO_DEVCTL.html
  * The planted bugs live in buggy_logic.c (shared with the Linux mock).
  *
- * Build (UNVERIFIED until the SDP is installed):
+ * Build (what `make -C target qnx` does; verified on SDP 8.0):
  *   qcc -Vgcc_ntox86_64 -g -O1 -fsanitize-coverage=trace-pc,trace-cmp -I../include \
  *       -c buggy_rm.c buggy_logic.c
  *   qcc -Vgcc_ntox86_64 -g -O1 -I../include -c ../covrt/cov_rt.c
@@ -31,9 +32,12 @@ static resmgr_connect_funcs_t connect_funcs;
 static resmgr_io_funcs_t      io_funcs;
 static iofunc_attr_t          attr;
 static char                   status_buf[128];
+static int                    trace;   /* BUGGY_TRACE=1: log devctl headers (TODO-QNX D2/D6) */
 
-static int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *ocb)
+static int io_read(resmgr_context_t *ctp, io_read_t *msg, RESMGR_OCB_T *vocb)
 {
+    /* RESMGR_OCB_T is void unless redefined; the default OCB is iofunc_ocb_t (verified on SDP 8.0). */
+    iofunc_ocb_t *ocb = vocb;
     int status;
     if ((status = iofunc_read_verify(ctp, msg, ocb, NULL)) != EOK) return status;
     if ((msg->i.xtype & _IO_XTYPE_MASK) != _IO_XTYPE_NONE) return ENOSYS;
@@ -74,15 +78,27 @@ static int io_devctl(resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb)
     int status;
     if ((status = iofunc_devctl_default(ctp, msg, ocb)) != _RESMGR_DEFAULT) return status;
 
-    /* Bytes that really arrived after the header (same arithmetic as the
-     * io_write sample). UNVERIFIED for devctl until tested on target. */
+    /* Bytes the client sent after the header (same arithmetic as the io_write
+     * sample). VERIFIED on QNX 8.0 (TODO-QNX D6): for devctl() libc sends
+     * srcmsglen = 16 + nbytes, offset 0. srcmsglen is what the CLIENT sent, not
+     * what was received: msglen is capped at msg_max_size (2088), so the rest
+     * must be fetched with resmgr_msgget(). */
     size_t hdr = sizeof(msg->i);
     size_t avail = (size_t)ctp->info.srcmsglen > (size_t)ctp->offset + hdr
                  ? (size_t)ctp->info.srcmsglen - (size_t)ctp->offset - hdr : 0;
     size_t claimed = msg->i.nbytes;          /* what the client SAYS it sent */
+    if (trace)
+        fprintf(stderr, "buggy_rm: devctl type=0x%x combine_len=%u dcmd=0x%08x nbytes=%u srcmsglen=%u msglen=%u "
+                "offset=%u msg_max_size=%u avail=%zu\n", msg->i.type, msg->i.combine_len, (unsigned)msg->i.dcmd,
+                (unsigned)msg->i.nbytes, (unsigned)ctp->info.srcmsglen, (unsigned)ctp->info.msglen,
+                (unsigned)ctp->offset, (unsigned)ctp->msg_max_size, avail);
     if (avail > sizeof in) avail = sizeof in;
-    /* Copy out of the receive buffer: the reply reuses the same memory. */
-    memcpy(in, _IO_INPUT_PAYLOAD(msg), avail <= ctp->msg_max_size - hdr ? avail : ctp->msg_max_size - hdr);
+    /* Copy out of the receive buffer (the reply reuses the same memory);
+     * resmgr_msgget() also fetches what did not fit in the receive buffer. */
+    if (avail) {
+        ssize_t got = resmgr_msgget(ctp, in, avail, hdr);
+        avail = got > 0 ? (size_t)got : 0;
+    }
 
     size_t outlen = 0;
     size_t outcap = ctp->msg_max_size - sizeof(msg->o);
@@ -107,6 +123,7 @@ int main(int argc, char **argv)
     dispatch_context_t *ctp;
 
     buggy_init();
+    trace = getenv("BUGGY_TRACE") != NULL;
     if ((dpp = dispatch_create()) == NULL) {
         fprintf(stderr, "%s: Unable to allocate dispatch handle.\n", argv[0]);
         return EXIT_FAILURE;

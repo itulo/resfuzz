@@ -11,8 +11,8 @@
  *
  * QNX: qcc passes any -f option straight to the compiler (qcc docs,
  * https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html,
- * "Handling other options"), so the flag should reach GCC. Whether QNX's
- * GCC build accepts it is UNVERIFIED (docs/TODO-QNX.md item C1). Without it
+ * "Handling other options"). VERIFIED: QNX 8.0's gcc 12.2.0 accepts it and emits
+ * the trace-pc/cmp/switch hooks (docs/TODO-QNX.md C1, C2). Without it
  * resfuzz falls back to blind (non-coverage) fuzzing; nothing else changes.
  *
  * If $RESFUZZ_SHM is unset or the shm cannot be mapped, hits go to a private

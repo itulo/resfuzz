@@ -52,7 +52,7 @@ class FakeQnx:
                   "file": "/data/resfuzz/out/crashes/crash_ab_0.rfz", "reproducible": True}
             (local / "events.jsonl").write_text(json.dumps(ev) + "\n")
             (local / "stats.json").write_text('{"execs": 5}')
-        elif "cores" in remote:
+        elif "/var/dumper" in remote:
             (local / "buggy_rm.core").write_bytes(b"core")
         elif remote.endswith(".min"):
             TestCase([Op(KIND["DEVCTL"], 0, 1, 0)]).save(local)
@@ -74,10 +74,10 @@ def test_qemu_campaign_with_fakes(tmp_path):
     assert any("--build" in a for a in argvs) and any("--run=-h" in a for a in argvs)
     assert fake.cmds[0].startswith("mkdir -p /data/resfuzz")
     assert any("resfuzz-agent" in c and "--cov" in c and "--spawn" in c for c in fake.cmds)
-    assert any(c.startswith("dumper -d /data/resfuzz/cores") for c in fake.cmds)
+    assert any(c.startswith("dumper -d /data/var/dumper") for c in fake.cmds)
     assert [Path(p[0]).name for p in fake.puts] == ["resfuzz-agent", "buggy_rm", "buggy_rm.dict"]
     # cores are fetched before the minimiser runs (minimisation crashes the server again)
-    core_i = next(i for i, g in enumerate(fake.gets) if "cores" in g)
+    core_i = next(i for i, g in enumerate(fake.gets) if "/var/dumper" in g)
     min_i = next(i for i, g in enumerate(fake.gets) if g.endswith(".min"))
     assert core_i < min_i
     f = res.findings[0]

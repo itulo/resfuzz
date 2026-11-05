@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * QNX 8.0 platform layer. NOT YET COMPILED: the SDP is not installed.
+ * QNX 8.0 platform layer. Built with qcc 12.2.0 (gcc_ntox86_64, SDP 8.0) and run on
+ * a mkqnximage QEMU x86_64 target; results per item are in docs/TODO-QNX.md.
  * Every QNX call below cites the QNX 8.0 doc page it was written from.
- * Items marked UNVERIFIED are tracked in docs/TODO-QNX.md.
  *
  * Doc base: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/
  */
@@ -58,13 +58,15 @@ void rf_plat_set_call_timeout_ns(uint64_t ns) { g_timeout_ns = ns; }
  *    server that set _NTO_CHF_UNBLOCK (resmgr servers typically do) - that is
  *    why the agent ALSO runs a watchdog thread (src/agent_main.c);
  *  - the Errors section lists EINVAL for "a nanosecond value less than 0 or
- *    greater than or equal to 1000 million", which conflicts with its own 10 s
- *    example. UNVERIFIED which is right; we clamp to 999,999,999 ns to be safe.
+ *    greater than or equal to 1000 million". VERIFIED on QNX 8.0 x86_64 (QEMU,
+ *    tests/qnx/qnx_checks.c, TODO-QNX E1): a 2 s and a 0.5 s timeout both return
+ *    0 and the blocked call fails with ETIMEDOUT after 2.001 s / 0.501 s, so the
+ *    64-bit ns value is not limited to < 1e9 and no clamp is needed.
  */
 static void arm_timeout(void)
 {
     if (!g_timeout_ns) return;
-    uint64_t ns = g_timeout_ns < 999999999ull ? g_timeout_ns : 999999999ull;
+    uint64_t ns = g_timeout_ns;
     (void)TimerTimeout(CLOCK_MONOTONIC, _NTO_TIMEOUT_SEND | _NTO_TIMEOUT_REPLY, NULL, &ns, NULL);
 }
 
@@ -128,8 +130,8 @@ int rf_plat_devctl(rf_conn *c, int dcmd, void *data, size_t n, int *info)
  *                       uint32_t nbytes; int32_t zero; }  + data[nbytes]
  * MsgSend() on an fd: "coid ... established by calling ConnectAttach() or one
  * of its cover functions, such as name_open() or open()" (.../m/msgsend.html).
- * UNVERIFIED: the exact combine_len value libc's devctl() puts in the header;
- * we use sizeof(header), which is what a non-combined message should carry.
+ * combine_len: VERIFIED (TODO-QNX D2) - libc's devctl() sends combine_len = 16 =
+ * sizeof(struct _io_devctl), the same value we put here.
  */
 long rf_plat_devctl_raw(rf_conn *c, int dcmd, uint32_t claimed, const void *data, size_t len, void *reply,
                         size_t rlen)

@@ -28,7 +28,8 @@ class TargetConfig:
     spawn: str | None = "/data/resfuzz/buggy_rm"   # agent restarts the server itself
     deploy_dir: str = "/data/resfuzz"              # /data is always read-write on mkqnximage images
     dicts: list[str] = field(default_factory=list)
-    dump_dir: str = "/data/resfuzz/cores"          # where dumper is told to write (-d)
+    dump_dir: str = "/data/var/dumper"             # where the image's dumper writes <prog>.core (TODO-QNX T1)
+    gdb: str = "ntox86_64-gdb"                      # host gdb for QNX cores (SDP 8.0: $QNX_HOST/usr/bin)
 
 
 @dataclass

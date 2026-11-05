@@ -42,7 +42,7 @@ $(BUILD)/unit_tests: tests/test_main.c $(CORE_SRC) $(LINUX_PLAT) | $(BUILD)
 test: $(BUILD)/unit_tests $(BUILD)/mock_rm_blind
 	MOCK_RM=$(BUILD)/mock_rm_blind $(BUILD)/unit_tests
 
-# ---- QNX (UNVERIFIED) -------------------------------------------------------
+# ---- QNX (verified with SDP 8.0) ----------------------------------------------------
 # qcc target selection per https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
 QCC      ?= qcc
 QNX_V    ?= gcc_ntox86_64

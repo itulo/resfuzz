@@ -11,8 +11,13 @@ from pathlib import Path
 
 from .testcase import FormatError, TestCase
 
-SIGNALS = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGBUS", 8: "SIGFPE", 9: "SIGKILL",
-           10: "SIGUSR1", 11: "SIGSEGV", 13: "SIGPIPE"}  # Linux numbering; QNX differs - shown as numbers there
+SIGNALS_LINUX = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGBUS", 8: "SIGFPE", 9: "SIGKILL",
+                 10: "SIGUSR1", 11: "SIGSEGV", 12: "SIGUSR2", 13: "SIGPIPE", 31: "SIGSYS"}
+# QNX 8.0 numbering, from $QNX_TARGET/usr/include/signal.h (SDP 8.0, checked on the installed SDK).
+SIGNALS_QNX = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGEMT", 8: "SIGFPE", 9: "SIGKILL",
+               10: "SIGBUS", 11: "SIGSEGV", 12: "SIGSYS", 13: "SIGPIPE", 16: "SIGUSR1", 17: "SIGUSR2"}
+SIGNAL_TABLES = {"linux": SIGNALS_LINUX, "qnx": SIGNALS_QNX}
+SIGNALS = SIGNALS_LINUX  # backwards-compatible alias
 FINDING_TYPES = ("crash", "hang", "deadline")
 
 
@@ -43,15 +48,17 @@ class Finding:
     testcase: TestCase | None = None
     minimized: TestCase | None = None
     frames: list[Frame] = field(default_factory=list)
+    platform: str = "linux"             # agent platform; selects the signal numbering
 
     @property
     def signal_name(self) -> str:
-        return SIGNALS.get(self.signal, str(self.signal)) if self.signal else ""
+        table = SIGNAL_TABLES.get(self.platform, SIGNALS_LINUX)
+        return table.get(self.signal, str(self.signal)) if self.signal else ""
 
     @property
     def severity(self) -> str:
         if self.type == "crash":
-            return "high" if self.signal in (7, 11) or self.signal == 0 else "medium"
+            return "high" if self.signal == 0 or self.signal_name in ("SIGSEGV", "SIGBUS") else "medium"
         if self.type == "hang":
             return "medium"
         return "low" if self.reproducible is False else "medium"
@@ -111,9 +118,20 @@ def _resolve(file: str, out_dir: Path) -> Path:
     return out_dir / p.name
 
 
+def detect_platform(events: list[dict]) -> str:
+    """The agent's "start" event carries "platform=<name>" in its detail."""
+    for ev in events:
+        if ev.get("type") == "start":
+            m = re.search(r"\bplatform=(\S+)", str(ev.get("detail", "")))
+            if m:
+                return m.group(1)
+    return "linux"
+
+
 def group_findings(events: list[dict], out_dir: str | Path, dcmd_names: dict[int, str] | None = None) -> list[Finding]:
     out_dir = Path(out_dir)
     dcmd_names = dcmd_names or {}
+    platform = detect_platform(events)
     by_bucket: dict[str, Finding] = {}
     for ev in events:
         t = ev.get("type")
@@ -129,7 +147,8 @@ def group_findings(events: list[dict], out_dir: str | Path, dcmd_names: dict[int
                 name = ""
             f = Finding(type=t, bucket=str(ev.get("bucket", "?")), op=ev.get("op", ""), dcmd=dcmd,
                         dcmd_name=name, errno=int(ev.get("errno", 0) or 0), errno_name=ev.get("errno_name", ""),
-                        signal=int(ev.get("signal", 0) or 0), first_t_ms=int(ev.get("t_ms", 0) or 0))
+                        signal=int(ev.get("signal", 0) or 0), first_t_ms=int(ev.get("t_ms", 0) or 0),
+                        platform=platform)
             by_bucket[key] = f
         f.count += 1
         f.max_latency_us = max(f.max_latency_us, int(ev.get("max_latency_us", 0) or 0))
@@ -163,6 +182,11 @@ def parse_backtrace(text: str) -> list[Frame]:
     for line in text.splitlines():
         m = _FRAME.match(line.strip())
         if m:
+            # gdb prints the current frame once when it loads a core and then
+            # again as #0 of `bt` (seen with ntox86_64-gdb on QNX 8.0 cores):
+            # a new #0 starts the real backtrace.
+            if int(m["idx"]) == 0:
+                frames = []
             frames.append(Frame(int(m["idx"]), m["func"], m["addr"], m["file"],
                                 int(m["line"]) if m["line"] else None))
     return frames
@@ -176,7 +200,7 @@ def stack_hash(frames: list[Frame], top: int = 3) -> str:
 
 def gdb_argv(program: str, core: str, gdb: str = "gdb") -> list[str]:
     """Batch backtrace of a core. On the host for QNX cores use the SDP's
-    cross gdb (name such as ntox86_64-gdb is UNVERIFIED - docs/TODO-QNX.md);
+    cross gdb ($QNX_HOST/usr/bin/ntox86_64-gdb on SDP 8.0, verified - TODO-QNX T2);
     on the target `gdb program core` is the documented dumper workflow
     (https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/d/dumper.html)."""
     return [gdb, "-batch", "-nx", "-ex", "set pagination off", "-ex", "bt", program, core]

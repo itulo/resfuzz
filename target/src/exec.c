@@ -56,6 +56,8 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
     static uint8_t dbuf[RF_MAX_PAYLOAD];
     rf_conn conns[RF_MAX_SLOTS];
     memset(conns, 0, sizeof conns);
+    int omode[RF_MAX_SLOTS];                 /* access_mode index per slot: 0 RD, 1 WR, 2 RDWR */
+    for (unsigned s = 0; s < RF_MAX_SLOTS; s++) omode[s] = 2;
     memset(res, 0, sizeof *res);
     res->op_index = -1;
     res->max_latency_op = -1;
@@ -68,7 +70,7 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
     /* Implicit open of slot 0 unless the test case starts by opening it. */
     if (!(tc->nops && tc->ops[0].kind == RF_OP_OPEN && (tc->ops[0].flags & 3u) == 0)) {
         int r = rf_plat_open(&conns[0], cfg->target, 2);
-        if (r == -EACCES || r == -EPERM) r = rf_plat_open(&conns[0], cfg->target, 0);
+        if (r == -EACCES || r == -EPERM) { r = rf_plat_open(&conns[0], cfg->target, 0); omode[0] = 0; }
         if (r < 0) {
             res->kind = RF_RES_SETUP_FAIL;
             res->err = -r;
@@ -89,6 +91,7 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
         case RF_OP_OPEN:
             if (c->open) rf_plat_close(c);
             r = rf_plat_open(c, cfg->target, (int)(op->a % 3u));
+            omode[op->flags & (RF_MAX_SLOTS - 1)] = (int)(op->a % 3u);
             if (r == 0) ever_opened = 1;
             else if (r == -ENOENT && ever_opened) r = -ESRCH;   /* name vanished: server died */
             break;
@@ -138,7 +141,13 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
             res->err = ETIMEDOUT;
             goto done;
         }
-        if (r < 0 && rf_err_means_server_gone((int)-r) &&
+        /* POSIX/QNX: read() on an O_WRONLY fd and write() on an O_RDONLY fd fail
+         * with EBADF from the server's iofunc layer (seen on QNX 8.0, TODO-QNX
+         * F1) - an ordinary error, not a vanished server. */
+        int wrong_dir = r == -EBADF &&
+            ((op->kind == RF_OP_READ  && omode[op->flags & (RF_MAX_SLOTS - 1)] == 1) ||
+             (op->kind == RF_OP_WRITE && omode[op->flags & (RF_MAX_SLOTS - 1)] == 0));
+        if (r < 0 && rf_err_means_server_gone((int)-r) && !wrong_dir &&
             !(op->kind == RF_OP_CLOSE && r == -EBADF)) {
             res->kind = RF_RES_CRASH;
             res->op_index = (int)i;

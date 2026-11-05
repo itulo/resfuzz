@@ -99,3 +99,25 @@ def test_reports_escape_untrusted(tmp_path):
 def test_empty_report():
     assert "No findings" in render_markdown([], {}, {"target": "t"})
     assert "No findings" in render_html([], {}, {"target": "t"})
+
+
+def test_qnx_signal_table():
+    from resfuzz.triage import group_findings
+    evs = [{"type": "start", "detail": "platform=qnx target=/dev/buggy coverage=1"},
+           {"type": "crash", "bucket": "q1", "op": "DEVCTL", "dcmd": "0xc0100543", "signal": 10},
+           {"type": "crash", "bucket": "q2", "op": "DEVCTL", "dcmd": "0xc0100543", "signal": 7}]
+    fs = {f.bucket: f for f in group_findings(evs, "/nonexistent")}
+    assert fs["q1"].signal_name == "SIGBUS" and fs["q1"].severity == "high"
+    assert fs["q2"].signal_name == "SIGEMT" and fs["q2"].severity == "medium"
+
+
+def test_parse_backtrace_qnx_core_duplicate_frame0():
+    from resfuzz.triage import parse_backtrace
+    text = """Program terminated with signal SIGSEGV, Segmentation fault.
+#0  buggy_devctl (dcmd=1, in=0x0) at buggy_rm/buggy_logic.c:130
+130\t    x
+#0  buggy_devctl (dcmd=1, in=0x0) at buggy_rm/buggy_logic.c:130
+#1  0x00000041890acfba in io_devctl (ctp=0x1) at buggy_rm/buggy_rm.c:90
+"""
+    fr = parse_backtrace(text)
+    assert [f.index for f in fr] == [0, 1] and fr[1].func == "io_devctl"

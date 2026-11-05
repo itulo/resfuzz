@@ -54,14 +54,24 @@ python3 -m venv .venv && .venv/bin/pip install -e host pytest
 .venv/bin/resfuzz local --seconds 60      # fuzz mock_rm, then open resfuzz-out/report.html
 ```
 
-## On QNX (planned; see docs/TODO-QNX.md)
+## On QNX (SDP 8.0, QEMU x86_64; see docs/TODO-QNX.md)
 
 ```sh
 source ~/qnx800/qnxsdp-env.sh             # QNX SDP 8.0 environment
 make -C target qnx                        # qcc build into target/build-qnx
-resfuzz image build -c host/examples/qemu.toml
-resfuzz run -c host/examples/qemu.toml    # boot, deploy, fuzz, triage, report
+scripts/qnx-up.sh                         # boot the mkqnximage QEMU target headless, wait for ssh
+resfuzz run -c host/examples/qemu.toml    # (re)boot, deploy, fuzz, triage, report
 ```
+
+Results on QNX 8.0 under QEMU TCG (no KVM), coverage + QNX dictionary, deadline 100 ms:
+
+| Run | execs/s | Found (first seen) |
+|---|---|---|
+| run1, 300 s | ~267 | BUG3a (2 s), BUG2 (7 s), BUG1 (72 s), BUG3b hang (189 s) |
+| run3, 300 s | ~425 | BUG3a (4 s), BUG2 (96 s); BUG1 and BUG3b not reached |
+
+Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
+fresh-server replay may not reproduce it (TODO-QNX F3).
 
 ## Results so far (Linux mock, single core)
 

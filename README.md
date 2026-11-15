@@ -31,7 +31,7 @@ supposed to be real-time. resfuzz sends those messages for you, automatically an
   - fetches findings and cores, gets gdb backtraces, and writes a Markdown and HTML report.
 - **Dictionary from headers.** `resfuzz dictgen` reads a driver's devctl header.
   - It generates a resolver program that prints the real `dcmd` values on the target.
-  - An optional LLM step can propose meaningful seed sequences. The model never invents dcmd values, and its suggestions are validated.
+  - An optional LLM step can propose meaningful seed sequences. The model never invents dcmd values; suggestions are validated, and a documented stall on a small local model is disclosed rather than hidden ([ai-seeds](docs/results/ai-seeds/NOTES.md)).
 
 ## Layout
 
@@ -134,12 +134,19 @@ documented under [docs/results](docs/results/):
 | `pipe` (system `/dev/pipe`, 300 s, attach-only) | 118,254 execs, **0 crashes, 0 hangs**; 2 deadline events, none reproducible | [qnx-pipe1](docs/results/qnx-pipe1/NOTES.md), [qemu-pipe.toml](host/examples/qemu-pipe.toml) |
 | `random` (system `/dev/random`, 180 s, attach-only) | 62,234 execs, **0 crashes, 0 hangs, 0 deadline misses** (max 47 ms) | [qnx-random1](docs/results/qnx-random1/NOTES.md), [qemu-random.toml](host/examples/qemu-random.toml) |
 
-Those honest null results still exercise dictgen from SDP headers (including F3S),
-`rmwrap` around daemonizing drivers, attach-only fuzzing of system services that
-must not be slayed, and the same host report path used on `buggy_rm`.
+Those campaigns are a credibility check, not a failed hunt: the same path used on
+`buggy_rm` works against closed SDP binaries, daemonizing drivers (`rmwrap`), and
+attach-only system services that must not be slayed, and the tool reports a null
+result when a finding does not replay.
 
-Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
-fresh-server replay may not reproduce it (TODO-QNX F3).
+Backtraces come from QNX cores via `ntox86_64-gdb`. Stateful bugs such as BUG1 are
+replayed as a recorded server history (TODO-QNX F3); in run5 that history shrank
+from 271 cases to 2 ops and replayed 3/3.
+
+Optional AI seeds are in [docs/results/ai-seeds](docs/results/ai-seeds/NOTES.md):
+local Qwen2.5-Coder-1.5B proposed payloads, while dcmd numbers stayed with the
+on-target resolver. The 1.5B CPU run stalled mid-JSON (disclosed in the notes);
+three validated seeds nonetheless replayed on QNX as crash / crash / hang.
 
 ## Results so far (Linux mock, single core)
 

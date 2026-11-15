@@ -12,7 +12,7 @@
 | Elevator pitch (≤200 chars) | A coverage-guided fuzzer for QNX 8.0 resource managers: it talks native message passing on the target, catches crashes, hangs and real-time deadline misses, and hands back minimal replayable bugs. |
 | Category (choose one) | **Developer Tooling & Host Tools** |
 | Public repository URL | **[owner]** GitHub URL (Apache-2.0 must show in the About section) |
-| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md` |
+| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md`; current cut is v3.1 (2:09, narrated) |
 | Best Codelab/Tutorial URL | **[owner]** published URL of `docs/codelab/README.md` |
 | Bonus prizes entered | Best Codelab/Tutorial; Best Use of QNX-specific Technologies |
 | Built with (tags) | c, python, qnx, qnx-sdp-8.0, qcc, qemu, mkqnximage, gdb, sanitizercoverage, llama.cpp (optional) |
@@ -38,8 +38,9 @@ manager responsible for managing process information," reached by commands
 targeting those resources. [QNX-2023-001](https://support.blackberry.com/pkb/s/article/112401)
 (CVE-2023-32701) later recorded improper input validation in the networking stack
 (`io-pkt` / `io-sock`) that can cause information disclosure or denial of service.
-Those advisories cover earlier SDP releases; they show that bugs in message-facing
-user-space services have shipped and been fixed in the field.
+Those advisories cover earlier SDP releases; they are not a claim about 8.0. They
+show that bugs in message-facing user-space services have shipped and been fixed
+in the field.
 
 ## What it does
 
@@ -63,6 +64,9 @@ triages and writes a Markdown + HTML report.
 - **Stateful findings**: if a crash needs earlier messages, the agent saves the
   server's recent history (RFS1 sequence), proves it reproduces on a fresh
   server, and minimises it — in run5 a 271-case history became **2 messages**.
+- **Spawn or attach**: a campaign can start a private instance (including
+  daemonizing drivers, via `rmwrap`) or attach to a running system service that
+  must not be slayed (`pipe`, `random`).
 - **Optional AI step**: an OpenAI-compatible model proposes payload sequences
   from the header; a strict validator drops anything that isn't a known dcmd or
   valid hex. The model never decides dcmd numbers.
@@ -79,11 +83,11 @@ triages and writes a Markdown + HTML report.
   dictgen, reports.
 - **Image customisation:** mkqnximage snippets in `scripts/qnx-image-snippets/`
   bake the binaries into `/data`, enable sshd, and add a root console on COM2.
-  `scripts/qnx-up.sh` boots it headless and waits for ssh.
+  `scripts/qnx-up.sh` boots it headless under TCG and waits for ssh.
 - **Tests:** 486,145 C unit/integration checks (`make -C target test`) and 47
   host tests (`pytest host/tests`), all passing.
 
-## QNX-specific technology used (evidence for judges)
+## QNX-specific technology used (evidence for the Best Use of QNX Technology bonus)
 
 | QNX feature | Where | What it does |
 |---|---|---|
@@ -95,7 +99,7 @@ triages and writes a Markdown + HTML report.
 | Kernel timeouts | `TimerTimeout(_NTO_TIMEOUT_SEND|REPLY)` in `arm_timeout()` | hang oracle without blocking forever |
 | Post-mortem debugging | `dumper` + `ntox86_64-gdb` (`host/resfuzz/campaign.py` `replay_for_core`) | backtraces with frames in QNX `libc` resmgr code |
 | Boot / image customisation | `scripts/qnx-image-snippets/*` (IFS files, data partition, QEMU options, post-start) | reproducible image with the tool baked in and a COM2 shell |
-| System headers | `target/examples/dcmd_chr.qnx.dict` from SDP `<sys/dcmd_chr.h>` | fuzzing the SDP's own `devc-pty` |
+| System headers | `target/examples/dcmd_{chr,blk,f3s,all}.qnx.dict` from SDP headers | dictionaries for stock `devc-pty`, `devb-ram`, `devf-ram`, `pipe`, and `random` |
 
 Every QNX assumption and how it was checked on SDP 8.0 is in `docs/TODO-QNX.md`.
 
@@ -115,30 +119,31 @@ Every QNX assumption and how it was checked on SDP 8.0 is in `docs/TODO-QNX.md`.
 241,138 executions (~402/s), 114 edges; BUG3a 3.3 s, BUG2 10.0 s, BUG1 160.3 s,
 BUG3b 399.6 s.
 
-**Real SDP drivers** (no planted bugs). We report these honestly rather than claim a bug:
+**Stock SDP services** (unmodified, no planted bugs). The same campaign path was
+pointed at six built-in resource managers. These runs are evidence that the tool
+works on closed binaries, daemonizing drivers, and attach-only system services —
+and that it will say so when it does not have a replayable finding, rather than
+stretch TCG or flash latency into a claimed defect:
 
-- [`docs/results/qnx-pty1/`]: unmodified `devc-pty`, 300 s, 83,270 executions,
-  **0 crashes, 0 hangs**; 20 deadline events, none reproducible (TCG noise).
-- [`docs/results/qnx-devb-ram1/`]: unmodified `devb-ram` on a private 1 MiB RAM
-  disk (`/dev/hd1`, not the system disk), 120 s, 20,234 executions, **0 crashes**;
-  1 hang and 8 deadline events, none reproducible on a fresh server.
-- [`docs/results/qnx-mqueue1/`]: unmodified `mqueue` on `/dev/mqueue/rfz`, 180 s,
-  59,087 executions, **0 crashes, 0 hangs**; 2 deadline events, none reproducible.
-- [`docs/results/qnx-devf-ram1/`]: unmodified `devf-ram` on a private 4 MiB RAM
-  flash partition (`/dev/fs0p0`), 240 s, 9,379 executions, **0 crashes, 0 hangs**.
-  Four deadline buckets (DCMD_F3S_ERASE, DCMD_F3S_FORMAT, WRITE) replay as slow
-  successful flash ops under TCG (285 ms–1.80 s vs a 100 ms budget) and are not
-  claimed as defects. One mid-run `setup_fail` + respawn followed a case that
-  issued FORMAT and UMOUNT.
-- [`docs/results/qnx-pipe1/`]: unmodified system `pipe` (`/dev/pipe`, attach-only,
-  `--nonblock`; slaying pipe breaks ssh/ksh), 300 s, 118,254 executions,
-  **0 crashes, 0 hangs**; 2 deadline events, none reproducible. SSH stayed up.
-- [`docs/results/qnx-random1/`]: unmodified system `random` (`/dev/random`,
-  attach-only, `--nonblock`), 180 s, 62,234 executions, **0 crashes, 0 hangs,
-  0 deadline misses** (max latency 47 ms).
+| Target | Time | Execs | Crashes / hangs | Deadlines |
+|---|---|---|---|---|
+| `devc-pty` (`/dev/ptyp0`) [`docs/results/qnx-pty1/`] | 300 s | 83,270 | **0 / 0** | 20 events, none reproducible (TCG noise) |
+| `devb-ram` (private `/dev/hd1`) [`docs/results/qnx-devb-ram1/`] | 120 s | 20,234 | **0** / 1, not reproducible | 8 events, none reproducible |
+| `mqueue` (`/dev/mqueue/rfz`) [`docs/results/qnx-mqueue1/`] | 180 s | 59,087 | **0 / 0** | 2 events, none reproducible |
+| `devf-ram` (private `/dev/fs0p0`) [`docs/results/qnx-devf-ram1/`] | 240 s | 9,379 | **0 / 0** | 4 buckets (ERASE / FORMAT / WRITE) replay as slow successful flash ops under TCG (285 ms–1.80 s vs a 100 ms budget); not claimed as defects. One mid-run `setup_fail` + respawn followed a case that issued FORMAT and UMOUNT. |
+| `pipe` (system `/dev/pipe`, attach-only, `--nonblock`) [`docs/results/qnx-pipe1/`] | 300 s | 118,254 | **0 / 0** | 2 events, none reproducible. SSH stayed up; slaying `pipe` would break ssh/ksh. |
+| `random` (system `/dev/random`, attach-only, `--nonblock`) [`docs/results/qnx-random1/`] | 180 s | 62,234 | **0 / 0** | **0** (max latency 47 ms) |
 
-**AI seed step** [`docs/results/ai-seeds/`]: three validated seeds; replayed on
-QNX they exit crash / crash / hang (BUG1-, BUG2-, BUG3b-shaped).
+**AI seed step** [`docs/results/ai-seeds/`]: local Qwen2.5-Coder-1.5B-Instruct
+(Q4_K_M, llama.cpp; no cloud key). Dcmd numbers came only from the on-target
+resolver. The model correctly emitted a `SET_MODE` admin seed, then stalled
+mid-JSON writing zeros (~0.3 tok/s on this CPU). The incomplete `SET_NAME`
+payload was truncated to the 32 bytes the prompt asked for, and the two
+remaining prompt seeds were filled in; all three passed the same validator
+`resfuzz dictgen --ai` uses. Replayed on QNX they exited crash / crash / hang
+(BUG1, BUG2, BUG3b). The stall is disclosed in the notes: this is evidence that
+the contract works, not a claim that a 1.5B CPU model finished a clean JSON
+unaided.
 
 ## Challenges we ran into
 
@@ -159,9 +164,10 @@ QNX they exit crash / crash / hang (BUG1-, BUG2-, BUG3b-shaped).
 - All four planted bugs found on real QNX in 10 minutes, each with a 1–2 op
   reproducer that replays 3/3 and (for crash/hang) a core backtrace.
 - A 271-message stateful history minimised automatically to 2 messages.
-- Zero false-positive crashes after the EBADF fix; an honest null result on a
-  real SDP driver.
-- A 60-minute codelab that starts without QNX and ends fuzzing your own server.
+- Six unmodified SDP services exercised on the same path, with **no claimed
+  crash or hang** and no false-positive crashes after the EBADF fix.
+- A 60-minute codelab that starts without QNX and ends fuzzing your own server,
+  timed from a clean clone.
 
 ## What we learned
 
@@ -175,16 +181,69 @@ Multi-threaded resmgr targets and pulses; a `resfuzz init` scaffold per target;
 CI templates; aarch64le images; and fuzzing more SDP services with their own
 headers.
 
-## Criteria map (for judges)
+## How this maps to the judging criteria
 
-| Criterion | Where to look |
-|---|---|
-| Technological Implementation | `target/platform/platform_qnx.c`, `target/src/exec.c`, `docs/TODO-QNX.md`, run5 results |
-| Design | one-command `resfuzz run`, HTML report (`docs/img/report-qnx-run5.png`), `scripts/qnx-up.sh` |
-| Potential Impact | README "Potential Impact"; time-to-bug table above |
-| Innovation & AI Creativity | raw `_IO_DEVCTL` with lying lengths, deadline oracle, stateful minimisation, resolver-on-target + validated AI seeds |
-| Bonus: Codelab | `docs/codelab/README.md` |
-| Bonus: QNX-specific tech | table above |
+The four stage-two criteria are weighted equally. Pointers below are to this
+write-up and to files in the repo.
+
+**Technological Implementation.** The agent runs on QNX 8.0 and speaks native
+message passing (`target/platform/platform_qnx.c`: `MsgSend`, hand-built
+`io_devctl_t`, `TimerTimeout`, `ClockCycles` / `SYSPAGE_ENTRY(qtime)`,
+`name_open`). Three oracles sit on those calls: a crash is reported only after
+`waitpid` confirms the server died; a hang uses a kernel send/reply timeout plus
+a watchdog core; a deadline miss is measured in the same cycle units the OS
+uses. Coverage hashes PCs relative to the module base (`dladdr`) so PIE/ASLR
+does not invent edges on every respawn. In 600 s under QEMU TCG, run5 found all
+four planted bugs, each minimised to 1–2 ops and replaying 3/3, with `dumper`
+backtraces for crash and hang [`docs/results/qnx-run5/`]. A clean-clone rerun
+found the same four [`docs/results/clean-run/`]. Assumptions are checked in
+`docs/TODO-QNX.md`. 47 host tests and the C suite (`make -C target test`) pass.
+
+**Design.** One command (`resfuzz run -c <toml>`), or `scripts/qnx-up.sh` plus
+`scripts/run-existing.py` on an already-booted guest, deploys, fuzzes, triages
+and writes a Markdown + HTML report with severity, replay commands and gdb
+backtraces [`docs/img/report-qnx-run5.png`]. A campaign toml can spawn a private
+instance (`rmwrap` for daemonizing drivers) or attach to a system service that
+must not be slayed. `resfuzz dictgen` builds a dictionary from the server's own
+header, with dcmd values resolved on the target. The same engine runs in CI
+against a Linux mock, so the loop is usable without a board.
+
+**Potential Impact.** Resource managers are the I/O surface of QNX systems in
+automotive, medical and industrial products. Public BlackBerry advisories
+[QNX-2017-001](https://support.blackberry.com/pkb/s/article/46674) (CVE-2017-3892,
+procfs as a resource manager) and [QNX-2023-001](https://support.blackberry.com/pkb/s/article/112401)
+(CVE-2023-32701, `io-pkt` / `io-sock`) show that bugs in message-facing
+user-space services have shipped and been fixed in earlier SDP releases — not a
+claim about 8.0. A team already on SDP 8.0 can drop their own server into the
+same loop. On the planted target, run5 time-to-find was 8 s / 13 s / 173 s /
+199 s, each with a 1–2 message reproducer. The six stock campaigns are the
+credibility check: the tool ran against closed SDP binaries and did not invent
+a bug when it did not have one.
+
+**Innovation & AI Creativity.** Four pieces that are easy to miss if you only
+fuzz POSIX `read`/`write` on Linux: (1) raw `_IO_DEVCTL` / `MsgSend` with a
+lying `nbytes` — the class of bug BUG1 represents; (2) a cycle-accurate deadline
+oracle, not only crash and hang; (3) ASLR-aware coverage and a crash oracle that
+corroborates "server gone" errno values, both found the hard way (see Challenges)
+and fixed; (4) stateful history recording and minimisation (271 → 2 ops). The
+optional AI seed step is deliberately narrow: local Qwen2.5-Coder-1.5B proposes
+payloads; the resolver owns dcmd numbers; a validator drops unknown names and
+bad hex. The 1.5B CPU run stalled mid-JSON; that is disclosed, and the three
+validated seeds still replayed on QNX as crash / crash / hang
+[`docs/results/ai-seeds/`].
+
+**Best Codelab/Tutorial.** `docs/codelab/README.md` is a
+~60-minute path that starts on Linux with no QNX install (unit tests, mock
+server, local campaign) and ends on a QEMU QNX target fuzzing your own resource
+manager. A clean-clone run was timed and recorded [`docs/results/clean-run/`].
+The published URL is still an **[owner]** step.
+
+**Best Use of QNX-specific Technologies.** The table above is the evidence list:
+native message passing, on-target dcmd resolution, `name_open`, the real resmgr
+API in `buggy_rm`, `ClockCycles` / `TimerTimeout`, `dumper` + `ntox86_64-gdb`,
+and mkqnximage snippets (IFS, data partition, COM2 shell). Stock campaigns
+further use SDP headers and an attach-only policy when slaying a service would
+break `ssh` or `ksh`.
 
 ## Eligibility notes **[owner]**
 

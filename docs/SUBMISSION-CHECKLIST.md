@@ -27,9 +27,9 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 | Repo shows it genuinely builds for/runs on QNX 8.0 | `target/platform/platform_qnx.c` (MsgSend, TimerTimeout, ClockCycles, name_open), `target/buggy_rm/buggy_rm.c` (resmgr/iofunc), `target/tests/qnx/*`, `scripts/qnx-image-snippets/*` (mkqnximage snippets), `target/examples/buggy_rm.qnx.dict` (dcmds resolved on QNX), and the committed QNX campaign [docs/results/qnx-run5](results/qnx-run5/report.md): report, minimised reproducers, gdb backtraces from QNX `dumper` cores (frames in QNXOS_805 `libc` resmgr code) | ✅ |
 | Build and run instructions naming QNX version, target and toolchain | README "On QNX" + `docs/TODO-QNX.md` header (SDP 8.0, QEMU x86_64, qcc gcc 12.2.0) | 🟡 fold into the codelab with exact commands |
 | Text description of features and functionality | README intro; [`docs/devpost/SUBMISSION.md`](devpost/SUBMISSION.md) draft | 🟡 drafted; paste into the form |
-| Demo video < 3 min, public on YouTube, footage of it running on the target, no third-party trademarks/copyrighted music without permission | script [`docs/video/SCRIPT.md`](video/SCRIPT.md); draft cut `docs/video/draft.mp4` (2:40, captions, no music/logos; gitignored) | 🟡 draft; ❌ final cut + public YouTube upload |
+| Demo video < 3 min, public on YouTube, footage of it running on the target, no third-party trademarks/copyrighted music without permission | script [`docs/video/SCRIPT.md`](video/SCRIPT.md); current cut `docs/video/v3.1.mp4` (2:09, narrated flite draft, no music/logos; gitignored) | 🟡 cut ready in-repo; ❌ public YouTube upload |
 | Codelab URL (Best Codelab/Tutorial bonus) | full tutorial in [`docs/codelab/README.md`](codelab/README.md) (~60 min, steps 1–8, TCG/KVM notes, troubleshooting) | 🟡 written; ❌ publish + submit URL |
-| Evidence of QNX use explained in the description, naming files/functions/output | the "Repo shows QNX" row above is that list; reuse it in the Devpost text | 🟡 |
+| Evidence of QNX use explained in the description, naming files/functions/output | table and criteria map in [`docs/devpost/SUBMISSION.md`](devpost/SUBMISSION.md) name the files, functions and campaign outputs | 🟡 drafted; paste into the form |
 | English | all materials in English | ✅ |
 | Original work, solely owned | own code; QNX doc pages are cited, not copied | ✅ |
 | Free access for judges until the end of judging | public repo + Apache-2.0 | ❌ with the repo |
@@ -38,16 +38,16 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 
 | Criterion | What judges look for | Evidence now | Gaps / next |
 |---|---|---|---|
-| **Technological Implementation** | well built, effective use of QNX 8.0, non-trivial, really builds/runs on QNX | run5 on QNX found all four planted bugs in 600 s, each with a 1-2 op reproducer replaying 3/3 and a core backtrace (`docs/results/qnx-run5`); portable C engine (RFZ1/RFS1 formats, mutator, corpus, ddmin minimiser, coverage + cmplog), QNX platform layer on native message passing, three oracles (crash via ESRCH/EBADF + waitpid, hang via TimerTimeout + watchdog + SIGABRT core, deadline via ClockCycles), stateful replay; 46 host tests + C unit/integration tests; every QNX assumption verified in `docs/TODO-QNX.md` (A-T, F1-F4) | fuzz one real QNX resmgr (e.g. an SDP sample or a small open-source driver) besides `buggy_rm` |
-| **Design** | complete, coherent product, not just a proof of concept | one command boots/deploys/fuzzes/triages (`resfuzz run`), Markdown+HTML report with minimised reproducers, backtraces, severity, replay command; `qnx-up.sh`, `--serial` | screenshots of the HTML report; a `resfuzz init` or a config template per target; polish report wording |
-| **Potential Impact** | credible, specific case in a market QNX serves; why a real-time OS foundation matters | README "Potential Impact": automotive/medical/industrial resmgrs; ISO 26262 / IEC 62304 framing; deadline oracle via `ClockCycles`; time-to-bug from run5 (BUG3a 8 s, BUG2 13 s, BUG1 173 s, BUG3b 199 s) | 🟡 optional: one external citation / customer quote |
-| **Innovation & AI Creativity** | creative, non-obvious use of QNX, genuine problem understanding | fuzzing *through* message passing (raw `_IO_DEVCTL` headers that lie about `nbytes`), a deadline oracle for real-time behaviour, stateful sequences, dictionary from headers resolved on target, optional LLM seed step that never invents dcmds | demonstrate the LLM seed step once and measure its effect; explain ASLR/PIE coverage finding |
+| **Technological Implementation** | well built, effective use of QNX 8.0, non-trivial, really builds/runs on QNX | run5 on QNX found all four planted bugs in 600 s, each with a 1-2 op reproducer replaying 3/3 and a core backtrace (`docs/results/qnx-run5`); six unmodified SDP services on the same path (`devc-pty`, `devb-ram`, `mqueue`, `devf-ram`, attach-only `pipe` and `random`) with honest null crash/hang results; portable C engine, QNX platform layer on native message passing, three oracles (crash via ESRCH/EBADF + waitpid, hang via TimerTimeout + watchdog, deadline via ClockCycles), ASLR-safe coverage, stateful replay; 47 host tests + C unit/integration tests; assumptions in `docs/TODO-QNX.md` | none required for the write-up; more SDP services remain optional |
+| **Design** | complete, coherent product, not just a proof of concept | one command boots/deploys/fuzzes/triages (`resfuzz run` / `scripts/run-existing.py`); Markdown+HTML report with minimised reproducers, backtraces, severity, replay command; screenshot `docs/img/report-qnx-run5.png`; `qnx-up.sh`, `--serial`; spawn vs attach-only campaign tomls | a `resfuzz init` scaffold is still "what's next" |
+| **Potential Impact** | credible, specific case in a market QNX serves; why a real-time OS foundation matters | README "Potential Impact" plus Devpost draft: automotive/medical/industrial resmgrs; sourced QNX-2017-001 / CVE-2017-3892 and QNX-2023-001 / CVE-2023-32701 (earlier SDP, not a claim about 8.0); deadline oracle via `ClockCycles`; run5 time-to-bug; stock campaigns as a credibility check | none required; a customer quote would still be optional |
+| **Innovation & AI Creativity** | creative, non-obvious use of QNX, genuine problem understanding | raw `_IO_DEVCTL` with lying `nbytes`; deadline oracle; stateful minimisation (271→2); ASLR/PIE coverage fix and EBADF corroboration; resolver-on-target; AI seeds via local Qwen2.5-Coder-1.5B with stall disclosed (`docs/results/ai-seeds/`) | covered in `docs/devpost/SUBMISSION.md` |
 
 ## 4. Bonus prizes
 
 | Bonus | Requirement | Evidence | Status |
 |---|---|---|---|
-| **Best Codelab/Tutorial** | URL of a codelab authored during the period that teaches a task on/for QNX 8.0 | [`docs/codelab/README.md`](codelab/README.md) written 15 Nov | 🟡 clean-machine timing + publish URL |
+| **Best Codelab/Tutorial** | URL of a codelab authored during the period that teaches a task on/for QNX 8.0 | [`docs/codelab/README.md`](codelab/README.md); clean-clone timed in `docs/results/clean-run/` | 🟡 written + timed; ❌ publish URL |
 | **Best Use of QNX-specific Technologies** | creative/sophisticated use of message passing, resource managers, microkernel, boot customisation, real-time services, security policies | native `MsgSend` on resmgr connections, hand-built `_IO_DEVCTL`, `name_open` targets, `TimerTimeout` unblock, `ClockCycles`/`SYSPAGE_ENTRY(qtime)` deadlines, `dumper` cores, mkqnximage snippets (IFS + data partition + COM2 console), resmgr written against `iofunc`/`resmgr_msgget` | ✅ evidence; 🟡 a security-policy (secpol) angle is not covered |
 
 ## 5. Open gaps (owner decisions in bold)
@@ -55,10 +55,10 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 1. **Create the public repository and push** (GitHub; About section shows Apache-2.0). Nothing has been published.
 2. Demo video (< 3 min) on YouTube, public.
 3. Devpost write-up (text description, QNX evidence list, category, links).
-4. Codelab: written (`docs/codelab/README.md`); still need clean-box timing + publish URL.
+4. Codelab: written (`docs/codelab/README.md`); clean-clone timed (`docs/results/clean-run/`). **Still need the published URL.**
 5. ~~Commit one representative QNX report~~ done: `docs/results/qnx-run5`.
 6. ~~Screenshots~~ done: `docs/img/report-qnx-run5.png`, `docs/img/qnx-up-boot.png`.
-7. Optional strength: a second, real resource manager as a target; LLM seed step demo.
+7. ~~Stock SDP targets + LLM seed demo~~ done: six official campaigns under `docs/results/`; AI seeds in `docs/results/ai-seeds/` (stall disclosed).
 
 ## 6. Campaign evidence (run5, 15 Nov 2026, QNX 8.0 / QEMU x86_64 TCG, 600 s, coverage on)
 
@@ -74,7 +74,7 @@ false positive on a raw `_IO_OPENFD` is fixed in `target/src/exec.c`).
 
 ## 7. Stock SDP targets (no planted bugs)
 
-Honest null crash/hang results, all under QEMU TCG:
+Credibility check, not a failed hunt: six unmodified SDP services, all under QEMU TCG, with no claimed crash or hang:
 
 - [`docs/results/qnx-pty1/NOTES.md`](results/qnx-pty1/NOTES.md): `devc-pty`, 300 s, 0 crashes, 0 hangs, 20 flaky TCG deadlines.
 - [`docs/results/qnx-devb-ram1/NOTES.md`](results/qnx-devb-ram1/NOTES.md): `devb-ram`, 120 s, 0 crashes; 1 hang and 8 deadlines, none reproducible.
@@ -87,4 +87,5 @@ Honest null crash/hang results, all under QEMU TCG:
 
 Evidence in [`docs/results/ai-seeds/`](results/ai-seeds/): local Qwen2.5-Coder-1.5B via llama.cpp,
 validator path exercised, three RFZ1 seeds written. Replayed on QNX: exit 10/10/11 (BUG1, BUG2, BUG3b).
-See NOTES.md for the honesty note about the slow CPU completion.
+The 1.5B CPU model stalled mid-JSON (~0.3 tok/s) after a correct SET_MODE seed;
+that stall is disclosed in NOTES.md. The three validated seeds still replayed.

@@ -38,6 +38,12 @@ Times below are the **v2/v3** scene lengths from `docs/video/v2-src/build.py`.
 | 11 | 1:49–2:03 | Results card (run5 + AI seeds) | "An optional AI step proposes seeds. A validator keeps command numbers from the target, never from the model." |
 | 12 | 2:03–2:09 | Closing card: repo URL placeholder, codelab, Apache-2.0 | "Open source, with a one-hour codelab. resfuzz." |
 
+The spoken line in shot 9 is still accurate for the pty campaign shown on
+screen. Later official stock campaigns (`devb-ram`, `mqueue`, `devf-ram`,
+attach-only `pipe` and `random`) are documented in `docs/results/` and in the
+Devpost draft; they are not in this cut, and the narration was left unchanged
+so it stays in sync with the 2:09 picture.
+
 ## Shot list / capture notes
 
 - Shots 3, 4, 7, 8: asciinema recordings rendered with agg (no fonts/logos beyond the terminal).

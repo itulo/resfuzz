@@ -43,8 +43,12 @@ Helper programs used: `target/tests/qnx/qnx_checks.c`, `target/tests/qnx/devctl_
 - [x] **D4** Calling `MsgSend()` on an fd returned by `open()`: the [MsgSend](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.lib_ref/topic/m/msgsend.html) page
   says open() establishes a usable coid. Confirm with DEVCTL_RAW against buggy_rm.
   **Result:** MsgSend on an open() fd works (GET_NAME: rc 0, ret_val 0, nbytes 32, data "buggy"). DEVCTL_RAW also triggers BUG1/BUG2 while fuzzing.
-- [ ] **D5** `name_open()` / `name_close()` semantics when the target is a name instead of a path.
-  **Open:** name_open() targets were not tested (buggy_rm only attaches a path).
+- [x] **D5** `name_open()` / `name_close()` semantics when the target is a name instead of a path.
+  **Result:** works. `tests/qnx/name_srv.c` (a plain `name_attach()` server) fuzzed as `--target name:resfuzz_echo`
+  for 45 s: 14,413 execs, 3,959 reply signatures, the agent's readiness probe and respawns go through
+  `name_open()`. Replaying a crafted MSG_RAW reached the planted NULL dereference: ESRCH + SIGSEGV, and the image's
+  dumper wrote `name_srv.core`. `devctl()` on a name coid sends `_IO_DEVCTL` like on an fd (the server answers ENOSYS).
+  The blind fuzzer did not place the 4-byte tag at offset 2 by itself in 45 s (mutation gap, not a QNX issue).
 - [x] **D6** In buggy_rm `io_devctl`: available payload = `srcmsglen − offset − sizeof(msg->i)`.
   This is borrowed from the io_write sample and unchecked for devctl. Also check whether messages larger
   than the receive buffer need `resmgr_msgget()` (the current code copies only what was received;
@@ -55,9 +59,12 @@ Helper programs used: `target/tests/qnx/qnx_checks.c`, `target/tests/qnx/devctl_
   **Result:** the _RESMGR_PTR reply works. GET_NAME returns ret_val 0, nbytes 32 and the data (D4, devctl_len.c).
 - [x] **D8** `iofunc_devctl_default()` handling and its `_RESMGR_DEFAULT` return value.
   **Result:** iofunc_devctl_default() returns _RESMGR_DEFAULT for our dcmds, and unknown dcmds come back as ENOTTY.
-- [~] **D9** `MSG_RAW` with arbitrary first u16 types: does the kernel or libc reject some before
+- [x] **D9** `MSG_RAW` with arbitrary first u16 types: does the kernel or libc reject some before
   they reach the server? Record any that are rejected.
-  **Partial:** types 0..0x13f (except _IO_CONNECT) all went through MsgSend with no unusual kernel errno. Replies were ENOSYS/EINVAL/EBADMSG/EBADF/EPERM, 0x106 gave ENOTTY and 0x10f gave errno 240. From the client side I can't tell whether the kernel or the server rejected them.
+  **Result:** the kernel delivers every type. `tests/qnx/d9_types.c` sent all 65,536 16-bit types with
+  `MsgSend()` to name_srv (no resmgr layer): 65,280 echoed, 255 `_IO_*` types got the server's own ENOSYS,
+  `_IO_CONNECT` got EOK, 0 failed on the way. So the ENOSYS/EINVAL/EBADMSG/errno 240 replies seen from buggy_rm
+  (types 0..0x13f) all come from the resmgr layer inside the server, i.e. they are server behaviour worth fuzzing.
 
 ## E. Timing and oracles
 - [x] **E1** `TimerTimeout()` and EINVAL: the Errors section says ns ≥ 1e9 is EINVAL, but the page's
@@ -87,12 +94,20 @@ Helper programs used: `target/tests/qnx/qnx_checks.c`, `target/tests/qnx/devctl_
   **Fixed:** --ssh-ident takes the PUBLIC key, and root login with the matching private key works. OpenSSH 10's sshd in the image needs /usr/libexec/sshd-auth, which the default image lacks. `qnx-image/local/snippets/ifs_files.custom` adds `/usr/libexec/sshd-auth=usr/libexec/sshd-auth`; the target path must be absolute, because a relative one lands in /proc/boot.
 - [x] **I4** `scp -r` from the target works (sshd and the sftp subsystem); `/data` is writable.
   **Result:** scp to and from /data, and `scp -r` of the result dir, work.
-- [ ] **I5** Add the agent and buggy_rm to the image instead of copying them with scp, using `--extra-dirs` or a
+- [x] **I5** Add the agent and buggy_rm to the image instead of copying them with scp, using `--extra-dirs` or a
   `data_files` snippet (mkqnx6fsimg syntax). This is optional and makes reboots faster.
-  **Open:** binaries are still copied with scp on every run (fast enough).
-- [ ] **I6** Serial fallback: how to reach the QEMU console from the host. `output/qemu.out` is
+  **Fixed:** `scripts/qnx-image-snippets/data_files.custom.in` (mkqnx6fsimg syntax,
+  `[uid=0 gid=0 dperms=755 perms=755] resfuzz/resfuzz-agent=<host path>`) is expanded by `scripts/qnx-up.sh`
+  into `qnx-image/local/snippets/data_files.custom`; a rebuilt image has the agent, buggy_rm, buggy_rm_blind
+  and the QNX dictionary in /data/resfuzz (checked with `ls -la` over ssh). qnx-up.sh rebuilds the image when
+  the snippets or binaries change. The orchestrator still scp's the binaries, so newer builds win.
+- [x] **I6** Serial fallback: how to reach the QEMU console from the host. `output/qemu.out` is
   output only; check whether a socket or pty is available.
-  **Open:** headless mode only writes the console to output/qemu.out. A `-serial unix:` socket via local/snippets/qemu_options.custom was not tried.
+  **Fixed:** `qemu_options.custom` adds `-serial unix:output/ser2.sock,server=on,wait=off` (COM2) and
+  `post_start.custom` runs `ksh -l` on /dev/ser2 (devc-ser8250 already exposes ser2). `scripts/qnx-up.sh --serial`
+  is an interactive console; `host/resfuzz/control.py` `SerialTarget(UnixSocketStream(path))` runs commands with exit
+  status over it (verified live: `ls /data/resfuzz` -> rc 0, `resfuzz-agent --help` works). Fixed on the way: the
+  sentinel matched the console's echo of the command line, now split with `""`. Test VM only: the socket is a root shell.
 
 ## T. Triage tools
 - [x] **T1** `dumper -d DIR` ([dumper](https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/d/dumper.html)):
@@ -113,11 +128,23 @@ Helper programs used: `target/tests/qnx/qnx_checks.c`, `target/tests/qnx/devctl_
   **Result:** _DCMD_MISC = 0x05, DEVDIR_TO = 0x80000000, DEVDIR_FROM = 0x40000000, size << 16, class << 8. The macros take (class, cmd, data), as assumed.
 
 ## F. Found while fuzzing on QNX
+- [x] **F4** Edge counts were not comparable between runs (run1 9,831 edges vs ~1,100 later). Cause: qcc links PIE
+  and QNX 8.0 randomises the load address on every spawn (a test program printed `main` at 0x2f46d7d6e0,
+  0x5e131eb6e0, 0x469684b6e0 in three runs), and cov_rt hashed absolute return addresses, so every respawned
+  server produced a fresh set of "new edges" (run1 had 114 respawns, run3 13). **Fixed:** cov_rt hashes the offset
+  from the executable's load base (`dladdr()`); a 90 s QNX run now reports 106 edges with 25 respawns, the same order
+  as the Linux mock (117 edges, 203 respawns). The inflated counts also polluted the corpus with no-op entries.
 - [x] **F1** read() on an O_WRONLY fd and write() on an O_RDONLY fd return EBADF from iofunc. The agent treated
   EBADF as "server gone" and reported these as signal-0 crashes. **Fixed:** exec.c tracks each slot's open mode and treats
   that EBADF as an ordinary error. Linux `make test` still passes.
 - [x] **F2** /data survives reboots, and the agent appends to events.jsonl, so a second campaign's results mixed
   with the first's. **Fixed:** QemuCampaign.deploy() recreates the remote out/ before each run.
-- [ ] **F3** BUG1 crashes depend on server state (admin mode set by an earlier test case on the same server
+- [x] **F3** BUG1 crashes depend on server state (admin mode set by an earlier test case on the same server
   instance). Replay against a fresh server often doesn't reproduce them, so they have no core/minimised case.
   A "replay the last N cases" mode would help.
+  **Fixed:** the agent keeps the cases run on the current server instance (and restarts it every
+  `--respawn-every` cases, default 1000, to bound that history). A crash/hang that does not reproduce alone is saved
+  with its history as an RFS1 sequence (`crashes/*.seq`) and re-checked against a fresh server; `--replay` and
+  `--minimize` accept sequences (suffix search, case-level delta debugging, flatten, op-level minimisation). On the
+  Linux mock a 9-case BUG1 history minimises to 2 ops (SET_MODE admin + SET_NAME with header nbytes 0x100) that crash
+  a fresh server every time (`host/tests/test_sequence.py`). QNX results: see the campaign in README.

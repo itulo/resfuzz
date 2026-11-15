@@ -1,0 +1,4 @@
+# local/snippets/ifs_files.custom (installed by scripts/qnx-up.sh)
+# OpenSSH 10 sshd needs sshd-auth; the default image lacks it (TODO-QNX I3).
+# The target path must be absolute, a relative one lands in /proc/boot.
+/usr/libexec/sshd-auth=usr/libexec/sshd-auth

@@ -65,11 +65,13 @@ class SerialTarget:
     """Fallback when networking is unavailable: drive the QEMU console.
 
     `stream` is any object with write(bytes)/read_until(marker: bytes, timeout) ->
-    bytes (e.g. a small wrapper around a pty or QEMU's -serial unix socket).
+    bytes; UnixSocketStream wraps the QEMU `-serial unix:` socket that
+    scripts/qnx-up.sh adds as COM2 with a root shell on /dev/ser2 (TODO-QNX I6).
     Commands are wrapped with a unique sentinel so output and exit status can
-    be recovered. File transfer is not supported: bake binaries into the image
-    via mkqnximage snippets instead (local/snippets/data_files.custom; syntax
-    is mkqnx6fsimg buildfile format - UNVERIFIED, see docs/TODO-QNX.md).
+    be recovered; the sentinel is split with "" in the command so the
+    console's echo of the command line never matches it. File transfer is not
+    supported: bake binaries into the image instead (data_files.custom from
+    scripts/qnx-image-snippets, verified - TODO-QNX I5).
     """
 
     def __init__(self, stream):
@@ -77,7 +79,7 @@ class SerialTarget:
 
     @staticmethod
     def wrap(cmd: str, tag: str) -> bytes:
-        return f"{cmd}; echo {tag}:$?\n".encode()
+        return f'{cmd}; echo {tag[:2]}""{tag[2:]}:$?\n'.encode()
 
     @staticmethod
     def unwrap(raw: bytes, tag: str) -> Result:
@@ -89,7 +91,7 @@ class SerialTarget:
         rc = int(tail[0]) if tail and tail[0].lstrip("-").isdigit() else 1
         body = text[:idx]
         # Drop the echoed command line if the console echoes input.
-        lines = [ln for ln in body.splitlines() if f"echo {tag}" not in ln]
+        lines = [ln for ln in body.splitlines() if f'echo {tag[:2]}""' not in ln]
         return Result(rc, "\n".join(lines).strip("\n"), "")
 
     def run(self, cmd: str, timeout: float | None = None) -> Result:
@@ -104,6 +106,36 @@ class SerialTarget:
 
     def get(self, remote: str, local: str, recursive: bool = False) -> Result:
         raise NotImplementedError("serial transfer unsupported")
+
+
+class UnixSocketStream:
+    """Stream over QEMU's `-serial unix:PATH,server=on,wait=off` socket."""
+
+    def __init__(self, path: str, connect_timeout: float = 5.0):
+        import socket
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.settimeout(connect_timeout)
+        self.sock.connect(path)
+
+    def write(self, data: bytes) -> None:
+        self.sock.sendall(data)
+
+    def read_until(self, marker: bytes, timeout: float) -> bytes:
+        import socket
+        buf, end = b"", time.monotonic() + timeout
+        while marker not in buf and time.monotonic() < end:
+            self.sock.settimeout(max(0.05, end - time.monotonic()))
+            try:
+                d = self.sock.recv(4096)
+            except socket.timeout:
+                break
+            if not d:
+                break
+            buf += d
+        return buf
+
+    def close(self) -> None:
+        self.sock.close()
 
 
 class LocalTarget:

@@ -1,0 +1,7 @@
+# local/snippets/post_start.custom (installed by scripts/qnx-up.sh)
+# Second serial port (QEMU -serial unix:output/ser2.sock, COM2 at 0x2f8 irq 3)
+# with a root shell on it: a console the host can drive when ssh/networking
+# is down (TODO-QNX I6, host/resfuzz/control.py SerialTarget). Test VM only:
+# anyone with access to output/ser2.sock gets a root shell.
+if [ ! -e /dev/ser2 ]; then devc-ser8250 -u2 -e -b115200 0x2f8,3 & fi
+waitfor /dev/ser2 5 && on -d -t /dev/ser2 ksh -l &

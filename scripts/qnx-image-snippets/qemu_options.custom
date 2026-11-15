@@ -1,0 +1,1 @@
+-serial unix:output/ser2.sock,server=on,wait=off

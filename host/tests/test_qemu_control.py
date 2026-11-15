@@ -49,7 +49,7 @@ def test_ssh_argv_quoting():
 
 def test_serial_wrap_unwrap():
     raw = SerialTarget.wrap("ls /dev", "RF1")
-    assert raw == b"ls /dev; echo RF1:$?\n"
+    assert raw == b'ls /dev; echo RF""1:$?\n' and b"RF1:" not in raw
     # console echoes the command, prints output, then the sentinel with status
     r = SerialTarget.unwrap(raw + b"null\r\nbuggy\r\nRF1:3\r\n", "RF1")
     assert r.returncode == 3 and "buggy" in r.stdout and "echo" not in r.stdout

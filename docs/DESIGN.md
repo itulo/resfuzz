@@ -136,7 +136,7 @@ It has three planted bugs of increasing depth:
 | 3a | `COMPUTE` | precise mode: an uncapped loop of about 2^18 iterations, a deadline miss | `flags == SLOW` exactly |
 | 3b | `COMPUTE` | `n + 1` wraps at `UINT32_MAX`, so the loop never ends (hang) | as 3a, plus the exact value |
 
-## 9. Milestones (deadline: Devpost, 15 Dec 2026 21:00 Helsinki time; we freeze on 13 Dec)
+## 9. Milestones (deadline: Devpost, 15 Dec 2026 14:00 EST = 19:00 Helsinki time; we freeze on 13 Dec)
 
 | Week | Dates | Deliverable | Status |
 |---|---|---|---|

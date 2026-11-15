@@ -2,8 +2,9 @@
 # resfuzz target side.
 #   make test    portable unit tests + mock_rm integration (gcc, ASan/UBSan)
 #   make linux   resfuzz-agent + coverage-instrumented mock_rm for the Linux stub platform
-#   make qnx     cross-compile with qcc (UNTESTED until the QNX SDP 8.0 is installed;
+#   make qnx     cross-compile with qcc (QNX SDP 8.0, gcc_ntox86_64; verified on QEMU,
 #                see ../docs/TODO-QNX.md)
+#   make qnx-checks  on-target check programs behind docs/TODO-QNX.md
 CC      ?= gcc
 BUILD   ?= build
 CFLAGS  ?= -O2 -g
@@ -17,7 +18,7 @@ CORE_SRC := src/util.c src/rng.c src/testcase.c src/dict.c src/mutate.c src/corp
 LINUX_PLAT := platform/platform_linux.c platform/platform_posix_common.c
 BUGGY_INC  := -Ibuggy_rm -Iplatform/linux_compat
 
-.PHONY: all linux test qnx clean
+.PHONY: all linux test qnx qnx-checks clean
 all: linux
 
 $(BUILD):
@@ -55,6 +56,14 @@ qnx:
 	$(QCC) $(QCFLAGS) -c -o $(QBUILD)/cov_rt.o covrt/cov_rt.c
 	$(QCC) $(QCFLAGS) -Ibuggy_rm $(COVFLAGS) -o $(QBUILD)/buggy_rm buggy_rm/buggy_rm.c buggy_rm/buggy_logic.c $(QBUILD)/cov_rt.o
 	$(QCC) $(QCFLAGS) -Ibuggy_rm -o $(QBUILD)/buggy_rm_blind buggy_rm/buggy_rm.c buggy_rm/buggy_logic.c
+
+# On-target check programs used for docs/TODO-QNX.md (not needed for fuzzing).
+qnx-checks:
+	mkdir -p $(QBUILD)
+	$(QCC) $(QCFLAGS) -Wextra -Ibuggy_rm -o $(QBUILD)/qnx_checks tests/qnx/qnx_checks.c
+	$(QCC) $(QCFLAGS) -Ibuggy_rm -o $(QBUILD)/devctl_len tests/qnx/devctl_len.c
+	$(QCC) $(QCFLAGS) -o $(QBUILD)/name_srv tests/qnx/name_srv.c
+	$(QCC) $(QCFLAGS) -o $(QBUILD)/d9_types tests/qnx/d9_types.c
 
 clean:
 	rm -rf $(BUILD) $(QBUILD)

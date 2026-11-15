@@ -130,9 +130,13 @@ documented under [docs/results](docs/results/):
 | `devc-pty` (`/dev/ptyp0`, 300 s) | 83,270 execs, **0 crashes, 0 hangs**; 20 deadline events, none reproducible | [qnx-pty1](docs/results/qnx-pty1/NOTES.md), [qemu-devc-pty.toml](host/examples/qemu-devc-pty.toml) |
 | `devb-ram` (private `/dev/hd1`, 120 s) | 20,234 execs, **0 crashes**; 1 hang and 8 deadline events, none reproducible | [qnx-devb-ram1](docs/results/qnx-devb-ram1/NOTES.md), [qemu-devb-ram.toml](host/examples/qemu-devb-ram.toml) |
 | `mqueue` (`/dev/mqueue/rfz`, 180 s) | 59,087 execs, **0 crashes, 0 hangs**; 2 deadline events, none reproducible | [qnx-mqueue1](docs/results/qnx-mqueue1/NOTES.md), [qemu-mqueue.toml](host/examples/qemu-mqueue.toml) |
+| `devf-ram` (private `/dev/fs0p0`, 240 s) | 9,379 execs, **0 crashes, 0 hangs**; 4 deadline buckets (ERASE / FORMAT / WRITE) replay as slow flash ops under TCG, not claimed as defects; 1 setup_fail + respawn after FORMAT/UMOUNT | [qnx-devf-ram1](docs/results/qnx-devf-ram1/NOTES.md), [qemu-devf-ram.toml](host/examples/qemu-devf-ram.toml) |
+| `pipe` (system `/dev/pipe`, 300 s, attach-only) | 118,254 execs, **0 crashes, 0 hangs**; 2 deadline events, none reproducible | [qnx-pipe1](docs/results/qnx-pipe1/NOTES.md), [qemu-pipe.toml](host/examples/qemu-pipe.toml) |
+| `random` (system `/dev/random`, 180 s, attach-only) | 62,234 execs, **0 crashes, 0 hangs, 0 deadline misses** (max 47 ms) | [qnx-random1](docs/results/qnx-random1/NOTES.md), [qemu-random.toml](host/examples/qemu-random.toml) |
 
-Those honest null results still exercise dictgen from SDP headers, spawning a
-daemonizing driver, and the same host report path used on `buggy_rm`.
+Those honest null results still exercise dictgen from SDP headers (including F3S),
+`rmwrap` around daemonizing drivers, attach-only fuzzing of system services that
+must not be slayed, and the same host report path used on `buggy_rm`.
 
 Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
 fresh-server replay may not reproduce it (TODO-QNX F3).

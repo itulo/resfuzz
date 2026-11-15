@@ -124,6 +124,18 @@ BUG3b 399.6 s.
   1 hang and 8 deadline events, none reproducible on a fresh server.
 - [`docs/results/qnx-mqueue1/`]: unmodified `mqueue` on `/dev/mqueue/rfz`, 180 s,
   59,087 executions, **0 crashes, 0 hangs**; 2 deadline events, none reproducible.
+- [`docs/results/qnx-devf-ram1/`]: unmodified `devf-ram` on a private 4 MiB RAM
+  flash partition (`/dev/fs0p0`), 240 s, 9,379 executions, **0 crashes, 0 hangs**.
+  Four deadline buckets (DCMD_F3S_ERASE, DCMD_F3S_FORMAT, WRITE) replay as slow
+  successful flash ops under TCG (285 ms–1.80 s vs a 100 ms budget) and are not
+  claimed as defects. One mid-run `setup_fail` + respawn followed a case that
+  issued FORMAT and UMOUNT.
+- [`docs/results/qnx-pipe1/`]: unmodified system `pipe` (`/dev/pipe`, attach-only,
+  `--nonblock`; slaying pipe breaks ssh/ksh), 300 s, 118,254 executions,
+  **0 crashes, 0 hangs**; 2 deadline events, none reproducible. SSH stayed up.
+- [`docs/results/qnx-random1/`]: unmodified system `random` (`/dev/random`,
+  attach-only, `--nonblock`), 180 s, 62,234 executions, **0 crashes, 0 hangs,
+  0 deadline misses** (max latency 47 ms).
 
 **AI seed step** [`docs/results/ai-seeds/`]: three validated seeds; replayed on
 QNX they exit crash / crash / hang (BUG1-, BUG2-, BUG3b-shaped).

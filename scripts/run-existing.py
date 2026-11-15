@@ -30,11 +30,14 @@ def main() -> int:
     p.add_argument("--pre", default=None, help="shell command on the guest before deploy")
     p.add_argument("--post", default=None, help="shell command on the guest after triage")
     p.add_argument("--extra", action="append", default=[], help="extra host file to scp into deploy_dir")
+    p.add_argument("--resmgr", default=None, help="override target.resmgr (host path of the SDP binary)")
     args = p.parse_args()
 
     cfg = load(args.config)
     if args.seconds is not None:
         cfg.fuzz.seconds = args.seconds
+    if args.resmgr:
+        cfg.target.resmgr = args.resmgr
     cfg.ssh.host = args.host
     cfg.ssh.identity = args.identity
     cfg.image.assumed_ip = args.host

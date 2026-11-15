@@ -72,9 +72,16 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 136,106 execs (227/s), 107 edges, 227 server restarts, 0 false-positive crashes (run4's EBADF
 false positive on a raw `_IO_OPENFD` is fixed in `target/src/exec.c`).
 
-## 7. Second target (SDP `devc-pty`, no planted bugs)
+## 7. Stock SDP targets (no planted bugs)
 
-See [`docs/results/qnx-pty1/NOTES.md`](results/qnx-pty1/NOTES.md): 300 s, 0 crashes, 0 hangs, 20 flaky TCG deadlines.
+Honest null crash/hang results, all under QEMU TCG:
+
+- [`docs/results/qnx-pty1/NOTES.md`](results/qnx-pty1/NOTES.md): `devc-pty`, 300 s, 0 crashes, 0 hangs, 20 flaky TCG deadlines.
+- [`docs/results/qnx-devb-ram1/NOTES.md`](results/qnx-devb-ram1/NOTES.md): `devb-ram`, 120 s, 0 crashes; 1 hang and 8 deadlines, none reproducible.
+- [`docs/results/qnx-mqueue1/NOTES.md`](results/qnx-mqueue1/NOTES.md): `mqueue`, 180 s, 0 crashes, 0 hangs; 2 deadlines, none reproducible.
+- [`docs/results/qnx-devf-ram1/NOTES.md`](results/qnx-devf-ram1/NOTES.md): `devf-ram`, 240 s, 0 crashes, 0 hangs; 4 deadline buckets are slow flash ops under TCG, not claimed as defects.
+- [`docs/results/qnx-pipe1/NOTES.md`](results/qnx-pipe1/NOTES.md): system `pipe`, attach-only, 300 s, 0 crashes, 0 hangs; 2 deadlines, none reproducible.
+- [`docs/results/qnx-random1/NOTES.md`](results/qnx-random1/NOTES.md): system `random`, attach-only, 180 s, 0 crashes, 0 hangs, 0 deadline misses.
 
 ## 8. AI seed step
 

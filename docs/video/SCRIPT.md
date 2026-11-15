@@ -9,11 +9,17 @@ Two cuts live in `docs/video/` (both gitignored; rebuild from `v2-src/` / `v3-sr
 |---|---|---|---|
 | v2 | `docs/video/v2.mp4` | 2:09 | captions only |
 | v3 | `docs/video/v3.mp4` | 2:09 | v2 picture plus spoken narration |
+| v3.1 | `docs/video/v3.1.mp4` | 2:09 | same flite `slt` track, louder/more even mix |
 
 v3 narration is generated with the box's `flite` (voice `slt`, no large model
-download). The voice is clearly synthetic; treat v3 as a draft. A cleaner
+download). The voice is clearly synthetic; treat v3 / v3.1 as a draft. A cleaner
 human recording can replace the `flite` track later without changing the picture.
-Rebuild: `docs/video/v3-src/build.sh`.
+Rebuild v3: `docs/video/v3-src/build.sh`. Rebuild v3.1 (remaster only, no
+re-synthesis): `docs/video/v3-src/build-v31.sh`. The title scene has only
+40 ms of slack (flite `slt` speaks it in 4.96 s of a 5.00 s pad). The other
+built-in voices (`rms`, `awb`, `kal`) and `duration_stretch=1.1` all run
+past 5 s and would be cut off, so v3.1 keeps `slt` and only raises and evens
+the existing mix (`loudnorm` to −14 LUFS, true peak −1.5 dB; about 2.7 dB louder than v3, peaks still under −1.3 dB).
 
 Times below are the **v2/v3** scene lengths from `docs/video/v2-src/build.py`.
 

@@ -56,6 +56,8 @@ static void apply_timeout(int fd)
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
 }
 
+void rf_plat_set_nonblock(int on) { (void)on; }   /* mock sockets: per-call timeouts already */
+
 int rf_plat_open(rf_conn *c, const char *target, int access_mode)
 {
     (void)access_mode;

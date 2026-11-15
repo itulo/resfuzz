@@ -38,6 +38,10 @@ uint64_t rf_plat_now_ns(void);
 /* Per-call timeout for the next blocking call (0 = none). */
 void     rf_plat_set_call_timeout_ns(uint64_t ns);
 
+/* Open targets with O_NONBLOCK, so reads on character devices (ptys, serial
+ * ports) with no data return EAGAIN instead of looking like a hang. */
+void     rf_plat_set_nonblock(int on);
+
 /* target: "/dev/foo" (path) or "name:foo" (name_attach'ed server). */
 int      rf_plat_open(rf_conn *c, const char *target, int access_mode /*0 r,1 w,2 rw*/);
 int      rf_plat_close(rf_conn *c);

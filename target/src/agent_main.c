@@ -56,7 +56,7 @@ typedef struct {
     unsigned ndicts;
     unsigned long long iterations, seconds, seed;
     unsigned deadline_us, hang_ms, max_ops, max_payload, respawn_every;
-    int cov, no_raw, quiet;
+    int cov, no_raw, quiet, nonblock;
 } opts_t;
 
 /* ---------------- global state ---------------- */
@@ -123,7 +123,7 @@ static void usage(void)
             "  --dict FILE          dictionary (repeatable)\n"
             "  --corpus DIR --out DIR --seconds N --iterations N --seed N\n"
             "  --deadline-us N (default 5000, 0=off) --hang-ms N (default 1000)\n"
-            "  --no-raw --max-ops N --max-payload N --quiet\n"
+            "  --no-raw --nonblock (open O_NONBLOCK: ttys) --max-ops N --max-payload N --quiet\n"
             "  --respawn-every N    restart the server every N cases (default 1000, 0=never; bounds stateful history)\n"
             "  --replay FILE | --minimize FILE --min-out FILE | --decode FILE\n",
             rf_plat_info()->name);
@@ -162,12 +162,14 @@ static int parse_args(int argc, char **argv)
         else if (ARG("--respawn-every")) O.respawn_every = (unsigned)strtoul(v, NULL, 0);
         else if (!strcmp(a, "--cov")) O.cov = 1;
         else if (!strcmp(a, "--no-raw")) O.no_raw = 1;
+        else if (!strcmp(a, "--nonblock")) O.nonblock = 1;
         else if (!strcmp(a, "--quiet")) O.quiet = 1;
         else if (!strcmp(a, "--help") || !strcmp(a, "-h")) { usage(); exit(0); }
         else { fprintf(stderr, "resfuzz-agent: bad argument '%s'\n", a); usage(); return -1; }
 #undef ARG
     }
     if (O.max_ops == 0 || O.max_ops > RF_MAX_OPS) O.max_ops = RF_MAX_OPS;
+    rf_plat_set_nonblock(O.nonblock);
     if (O.max_payload == 0 || O.max_payload > RF_MAX_PAYLOAD) O.max_payload = RF_MAX_PAYLOAD;
     if (O.hang_ms == 0) O.hang_ms = 1000;
     if (!O.decode && !O.target) { usage(); return -1; }

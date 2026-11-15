@@ -216,7 +216,7 @@ class QemuCampaign:
                           dicts=self.remote_dicts(), seconds=fz.seconds, deadline_us=fz.deadline_us,
                           hang_ms=fz.hang_ms, seed=fz.seed, no_raw=fz.no_raw)
         agent = f"{self.rdir}/{Path(self.cfg.target.agent).name}"
-        return " ".join(shlex.quote(x) for x in [agent] + args + list(extra))
+        return " ".join(shlex.quote(x) for x in [agent] + args + list(fz.agent_args) + list(extra))
 
     def fuzz(self) -> Result:
         return self.target.run(self.agent_cmd(), timeout=self.cfg.fuzz.seconds + 300)
@@ -238,7 +238,7 @@ class QemuCampaign:
         agent = f"{self.rdir}/{Path(self.cfg.target.agent).name}"
         spawn = ["--spawn", self.cfg.target.spawn] if self.cfg.target.spawn else []
         replay = [agent, "--target", self.cfg.target.path, *spawn, "--out", f"{self.rdir}/replay",
-                  "--hang-ms", str(self.cfg.fuzz.hang_ms), "--replay", remote_case]
+                  "--hang-ms", str(self.cfg.fuzz.hang_ms), *self.cfg.fuzz.agent_args, "--replay", remote_case]
         r = t.run(" ".join(q(x) for x in replay), timeout=120)
         self.log.append(f"replay {f.bucket}: {EXIT_CODES.get(r.returncode, r.returncode)}")
         # fetch cores BEFORE minimising: minimisation crashes the server again

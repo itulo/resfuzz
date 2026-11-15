@@ -1,0 +1,1 @@
+{"version":"0.1.0","platform":"qnx","target":"/dev/ptyp0","elapsed_s":300.3,"execs":83270,"execs_per_s":277.3,"crashes":0,"hangs":0,"deadline_misses":20,"setup_failures":0,"respawns":83,"coverage":false,"edges":0,"reply_signatures":8148,"buckets":20,"max_latency_us":1235632,"cycles_per_sec":2397318634,"deadline_us":100000,"seed":40179431101}

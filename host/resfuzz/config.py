@@ -40,6 +40,7 @@ class FuzzConfig:
     coverage: bool = True
     seed: int | None = None
     no_raw: bool = False
+    agent_args: list[str] = field(default_factory=list)   # extra agent flags, e.g. ["--nonblock"] for ttys
 
 
 @dataclass

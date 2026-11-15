@@ -70,6 +70,9 @@ static void arm_timeout(void)
     (void)TimerTimeout(CLOCK_MONOTONIC, _NTO_TIMEOUT_SEND | _NTO_TIMEOUT_REPLY, NULL, &ns, NULL);
 }
 
+static int g_nonblock;
+void rf_plat_set_nonblock(int on) { g_nonblock = on; }
+
 int rf_plat_open(rf_conn *c, const char *target, int access_mode)
 {
     if (strncmp(target, "name:", 5) == 0) {
@@ -80,7 +83,7 @@ int rf_plat_open(rf_conn *c, const char *target, int access_mode)
         return 0;
     }
     static const int modes[3] = { O_RDONLY, O_WRONLY, O_RDWR };
-    int fd = open(target, modes[(unsigned)access_mode % 3u]);   /* -> _IO_CONNECT */
+    int fd = open(target, modes[(unsigned)access_mode % 3u] | (g_nonblock ? O_NONBLOCK : 0));   /* -> _IO_CONNECT */
     if (fd < 0) return -errno;
     c->fd = fd; c->is_name = 0; c->open = 1;
     return 0;

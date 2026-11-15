@@ -96,7 +96,7 @@ def cmd_dictgen(a) -> int:
     text = Path(a.header).read_text()
     info = parse_header(text)
     if a.resolver_out:
-        Path(a.resolver_out).write_text(resolver_source(Path(a.header).name, info))
+        Path(a.resolver_out).write_text(resolver_source(a.header_include or Path(a.header).name, info, a.include))
         print(f"wrote {a.resolver_out}: compile for the target, run it, pass its output via --resolved")
     resolved = Path(a.resolved).read_text() if a.resolved else None
     d = build_dictionary(text, resolved)
@@ -169,6 +169,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("dictgen", help="dictionary (+ optional AI seeds) from a devctl header")
     s.add_argument("header")
     s.add_argument("--resolver-out", help="write the C resolver program here")
+    s.add_argument("--header-include", help='how the resolver includes the header, e.g. "<sys/dcmd_chr.h>"')
+    s.add_argument("--include", action="append", default=[],
+                   help="extra header the resolver includes first (repeatable), e.g. termios.h")
     s.add_argument("--resolved", help="output of the resolver run on the target")
     s.add_argument("--out", help="dictionary file to write (default stdout)")
     s.add_argument("--ai", action="store_true", help="ask an OpenAI-compatible model for seed sequences")

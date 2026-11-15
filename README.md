@@ -56,6 +56,38 @@ python3 -m venv .venv && .venv/bin/pip install -e host pytest
 .venv/bin/resfuzz local --seconds 60      # fuzz mock_rm, then open resfuzz-out/report.html
 ```
 
+Tutorial: the step-by-step codelab is in [docs/codelab/README.md](docs/codelab/README.md) (~60 min).
+
+## Potential Impact
+
+QNX ships in systems where a resource-manager bug is not a crash dialog — it is a
+missed frame, a stalled actuator, or a device that never comes back. Automotive
+gateways, medical monitors and industrial controllers put device I/O behind
+resource managers precisely because the microkernel keeps faults isolated; that
+isolation only helps if the server itself is robust against the messages it accepts.
+
+resfuzz attacks the same interface those servers expose to every client:
+
+- **Trusted length fields.** `devctl` carries a claimed `nbytes` that the server
+  must reconcile with the bytes actually transferred. BUG1 is the classic
+  "copy what the header said" overflow; finding it automatically is a direct
+  stand-in for ISO 26262 / IEC 62304 robustness testing of I/O handlers.
+- **Unchecked indexes and state.** BUG2 is a NULL dereference behind a
+  range-checked but sparsely populated table — the kind of latent fault that
+  surfaces only after a rare admin/mode transition.
+- **Real-time behaviour.** A server that takes half a second on its only thread
+  (BUG3a) or never replies (BUG3b) violates deadlines even when it never
+  segfaults. The deadline oracle uses QNX `ClockCycles`, so a miss is measured
+  in the same units a running system would care about.
+
+Because the agent runs *on the target* over native message passing — not over a
+host-side stub — the findings are the failures a real client can provoke. The
+host side is a developer tool: one command boots a QEMU target, deploys, fuzzes,
+minimises and writes a report with gdb backtraces from `dumper` cores. Teams
+already building with SDP 8.0 can drop their own resource manager in place of
+`buggy_rm`, generate a dictionary from its header, and run the same loop in CI
+against the Linux mock for every commit.
+
 ## On QNX (SDP 8.0, QEMU x86_64; see docs/TODO-QNX.md)
 
 ```sh
@@ -75,8 +107,12 @@ Results on QNX 8.0 under QEMU TCG (no KVM), coverage + QNX dictionary, deadline 
 
 Every run5 finding has a minimised reproducer that replays 3/3 on a fresh server, and a
 `dumper` core backtrace; the report, reproducers and backtraces are committed in
-[docs/results/qnx-run5](docs/results/qnx-run5/report.md). Bring the target up with
+[docs/results/qnx-run5](docs/results/qnx-run5/report.md). Screenshots: [HTML report](docs/img/report-qnx-run5.png), [qnx-up boot](docs/img/qnx-up-boot.png).
+Bring the target up with
 `scripts/qnx-up.sh` (`--serial` for a console on COM2, `--stop` to shut it down).
+
+A second campaign against the SDP's own unmodified `devc-pty` (no planted bugs) is documented in
+[docs/results/qnx-pty1](docs/results/qnx-pty1/NOTES.md); config: [host/examples/qemu-devc-pty.toml](host/examples/qemu-devc-pty.toml).
 
 Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
 fresh-server replay may not reproduce it (TODO-QNX F3).

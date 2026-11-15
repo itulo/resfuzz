@@ -1,0 +1,1 @@
+Ten minutes in, all four planted bugs: a deadline miss, a null dereference, a hang, and a stateful overflow.

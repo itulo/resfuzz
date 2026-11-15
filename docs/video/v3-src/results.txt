@@ -1,0 +1,1 @@
+An optional A I step proposes seeds. A validator keeps command numbers from the target, never from the model.

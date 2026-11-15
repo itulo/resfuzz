@@ -1,0 +1,65 @@
+===== /data/home/root time =====
+Sun Nov 15 16:23:49 UTC 2026
+===== all =====
+     pid Arguments
+       1 procnto-smp-instr -mr -d 0777 -u 0777 
+   16387 slogger2 -U 21:21 
+   24581 pci-server --aspace-enable --config=/proc/boot/pci_server.cfg 
+   45060 devc-ser8250 -e 
+   57351 ksh ksh 
+   61446 fsevmgr 
+   65544 devb-eide cam user=20:20 blk cache=64M,auto=partition,vnode=2000,ncache=2000,commit=low 
+  131081 random -U 22:22 -s /data/var/random/rnd-seed 
+  155659 devc-pty -U 37:37 
+  159756 dumper -U 30:30 -d /data/var/dumper -M 1000 -D cores 
+  163853 io-sock -m phy -m pci -m usb -d vtnet_pci 
+  225297 dhcpcd: [manager] [ip4] [ip6] -bq -f /system/etc/dhcpcd/dhcpcd.conf -c /system/etc/dhcpcd/dhcpcd-run-hooks 
+  249871 /system/bin/sshd -f /system/etc/ssh/sshd_config 
+  253966 qconn 
+  282645 io-usb-otg -d hcd-uhci -d hcd-ehci -d hcd-xhci 
+  294935 ksh ksh 
+ 1699842 /system/bin/pipe -U 24:24 
+ 1851411 /system/bin/mqueue 
+ 3706898 /system/bin/sshd-session -f /system/etc/ssh/sshd_config -R 
+ 3727370 /system/bin/sshd-session -f /system/etc/ssh/sshd_config -R 
+ 3727376 sh -c sh 
+ 3731476 /data/resfuzz/resfuzz-agent --target /dev/hd1 --out /data/resfuzz/out --deadline-us 100000 --hang-ms 2000 --spawn /data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none --dict /data/resfuzz/dcmd_blk.qnx.dict --dict /data/resfuzz/dcmd_all.qnx.dict --seconds 25 --quiet 
+ 3735576 /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none 
+ 3768342          
+ 3784734 sh -c sh 
+ 3797023 ls -l /dev/hd1 
+ 3837977 ls /dev/hd1 
+ 3891232 sh -c sh 
+ 3903521 ls -l /dev/hd0 /dev/hd1 
+ 4091930 /system/bin/sshd-session -f /system/etc/ssh/sshd_config -R 
+ 4104219 /system/bin/sshd-session -f /system/etc/ssh/sshd_config -R 
+ 4104220 sh -c sh 
+ 4116509 pidin ar 
+===== agent =====
+     pid STATE          Blocked                      Thread flags     kernel call       
+ 3731476 REPLY          3735576                      00000000         msg_sendv 
+ 3731476 NANOSLEEP                                   00000000         timer_timeout 
+===== devb-ram =====
+     pid STATE          Blocked                      Thread flags     kernel call       
+ 3735576 CONDVAR        (0x4608a555d0)               80000000         sync_condvar_wa 
+ 3735576 RECEIVE        1                            80000000         msg_receivepuls 
+ 3735576 RECEIVE        3                            80000000         msg_receivepuls 
+ 3735576 RECEIVE        4                            80000000         msg_receivepuls 
+ 3735576 RECEIVE        5                            80000000         msg_receivev 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+ 3735576 CONDVAR        (0x2bb59d76e0)               80000000         sync_condvar_wa 
+ 3735576 MUTEX          (0x2bb59b4450) 3735576-08 #1 80000000         sync_mutex_lock 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+ 3735576 CONDVAR        (0x4608a555d8)               80000000         sync_condvar_wa 
+===== ls1 =====
+     pid STATE          Blocked                      Thread flags     kernel call       
+ 3797023 REPLY          3735576                      00000000         msg_sendvnc 
+===== ls2 =====
+     pid STATE          Blocked                      Thread flags     kernel call       
+ 3837977 SEND           3735576                      00000000         msg_sendvnc 
+===== dumper =====
+total 3456
+-rw-r-----  1 root 30 1769472 2026-11-15 10:24 buggy_rm.core

@@ -1,0 +1,1 @@
+It uses native message passing, Clock Cycles for deadlines, Timer Timeout for hangs, and dumper cores for backtraces.

@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>resfuzz report: /dev/hd1</title><style>body{font-family:system-ui,sans-serif;max-width:1000px;margin:2em auto;padding:0 1em;color:#1b1b1b}
+table{border-collapse:collapse;margin:1em 0}td,th{border:1px solid #ccc;padding:.3em .6em;text-align:left}
+pre{background:#f5f5f5;padding:.8em;overflow:auto}.sev-high{color:#b00020;font-weight:bold}
+.sev-medium{color:#b26a00}.sev-low{color:#555}code{background:#f0f0f0;padding:0 .2em}</style></head><body>
+<h1>resfuzz report: <code>/dev/hd1</code></h1>
+<p>Generated 2026-11-15 18:32 EET on platform <code>qnx</code>.</p>
+<table><tr><th>Executions</th><td>20234 (165.2/s over 122.5 s)</td></tr>
+<tr><th>Coverage</th><td>off (reply-signature feedback)</td></tr>
+<tr><th>Deadline</th><td>100000 us, worst latency seen 4783108 us</td></tr>
+<tr><th>Target restarts</th><td>3</td></tr>
+<tr><th>Unique findings</th><td>0 crash, 1 hang, 8 deadline (0 reproducible)</td></tr></table>
+<h2>Findings</h2>
+<table><tr><th>#</th><th>Severity</th><th>Finding</th><th>Hits</th><th>Reproducible</th></tr><tr><td>1</td><td class='sev-medium'>medium</td><td><a href='#f1'>HANG in READ 0x000001ff</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>2</td><td class='sev-low'>low</td><td><a href='#f2'>DEADLINE in DEVCTL DCMD_BLK_FORCE_RELEARN (404663 us)</a></td><td>2</td><td>no (stateful/flaky)</td></tr><tr><td>3</td><td class='sev-low'>low</td><td><a href='#f3'>DEADLINE in DEVCTL_RAW DCMD_BLK_PART_DESCRIPTION (110751 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>4</td><td class='sev-low'>low</td><td><a href='#f4'>DEADLINE in DEVCTL_RAW DCMD_BLK_FORCE_RELEARN (1012026 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>5</td><td class='sev-low'>low</td><td><a href='#f5'>DEADLINE in DEVCTL_RAW 0x80000000 (121186 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>6</td><td class='sev-low'>low</td><td><a href='#f6'>DEADLINE in DEVCTL_RAW DCMD_FSYS_DIRECT_IO_OLD (336590 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>7</td><td class='sev-low'>low</td><td><a href='#f7'>DEADLINE in READ 0x00000004 (168956 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>8</td><td class='sev-low'>low</td><td><a href='#f8'>DEADLINE in DEVCTL DCMD_FSYS_LABEL (273906 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr><tr><td>9</td><td class='sev-low'>low</td><td><a href='#f9'>DEADLINE in DEVCTL_RAW 0xfa0000fa (1327804 us)</a></td><td>1</td><td>no (stateful/flaky)</td></tr></table>
+<h3 id='f1'>1. HANG in READ 0x000001ff</h3><ul><li>Bucket <code>3b954408d18d2385</code>, 1 hit(s), first at 122.5 s</li><li>Errno 260 Connection timed out</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay hangs/hang_3b954408d18d2385_0.rfz</code></li></ul><p>Test case (16 ops)</p><pre>#0   slot0 READ       a=0x000001ff b=0x00000000 len=0
+#1   slot0 DEVCTL_RAW a=0x00004008 b=0x00000200 len=6 data=0040000000ad
+#2   slot0 DEVCTL     a=0x8ba6a180 b=0x0000003c len=59 data=8222394c25b3b59e6e369f9118f8a8adaef75c29c71e64880368e50fcab7d00f...
+#3   slot0 READ       a=0x0000ffff b=0x00000000 len=0
+#4   slot0 READ       a=0x0000ffff b=0x00000000 len=0
+#5   slot0 DEVCTL_RAW a=0x80040102 b=0x00000006 len=4 data=0000ffff
+#6   slot0 DEVCTL_RAW a=0x80280226 b=0x00000100 len=21 data=a3d23c900000000000000000000200000020000000
+#7   slot0 DEVCTL_RAW a=0x80280226 b=0x00000100 len=29 data=a3d23c9000000000000000000000000000000000000200000020000000
+#8   slot0 DEVCTL_RAW a=0x80180106 b=0x000001ff len=28 data=d13cb7b5f31ca2004000008000200000000000000001000000000000
+#9   slot0 DEVCTL     a=0x80280226 b=0x00000028 len=40 data=07dc077eb7698362dfb94c84621b9e035b322a1386bef047787ed7ed031a25b4...
+#10  slot0 DEVCTL_RAW a=0xc0080227 b=0x00000005 len=35 data=6b6e69fb6e75bb6e6e6e6efa6e276e6e6e8c6eff6eb6d71c7d6e360000000000...
+#11  slot0 DEVCTL_RAW a=0x00008000 b=0x0000002e len=20 data=0000000000000000000100000000000000000000
+#12  slot1 DEVCTL     a=0x80180186 b=0x00000100 len=32 data=cdb636d1547320c58c3f8d5a0500000080a535040040000074004000003cb7b5
+#13  slot1 DEVCTL_RAW a=0xc020021f b=0x00000009 len=28 data=cdb636d1547320c58c3f8d5a0500000080a5350474004000003cb7b5
+#14  slot0 WRITE      a=0x00000000 b=0x00000000 len=8 data=d13cb7b500002980
+#15  slot0 DEVCTL_RAW a=0xc4080242 b=0x00000001 len=8 data=0500000044ccc25a</pre><h3 id='f2'>2. DEADLINE in DEVCTL DCMD_BLK_FORCE_RELEARN (404663 us)</h3><ul><li>Bucket <code>4ebf900296a4ab56</code>, 2 hit(s), first at 32.0 s</li><li>Errno 0 </li><li>Worst reply latency 404663 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_4ebf900296a4ab56_0.rfz</code></li></ul><p>Test case (6 ops)</p><pre>#0   slot0 DEVCTL     a=0x00000202 b=0x00000000 len=0
+#1   slot0 DEVCTL     a=0x00000202 b=0x00000004 len=0
+#2   slot0 DEVCTL_RAW a=0xc0080227 b=0x00000008 len=8 data=00001680554f8b79
+#3   slot0 DEVCTL     a=0x80040105 b=0x00000004 len=4 data=193f07a3
+#4   slot0 DEVCTL     a=0x0000021c b=0x0000002e len=0
+#5   slot0 DEVCTL_RAW a=0x8008021a b=0x00000028 len=8 data=1fe8f87b217af2ac</pre><h3 id='f3'>3. DEADLINE in DEVCTL_RAW DCMD_BLK_PART_DESCRIPTION (110751 us)</h3><ul><li>Bucket <code>05fe65250ff86b89</code>, 1 hit(s), first at 30.9 s</li><li>Errno 0 </li><li>Worst reply latency 110751 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_05fe65250ff86b89_0.rfz</code></li></ul><p>Test case (9 ops)</p><pre>#0   slot0 DEVCTL_RAW a=0x41000203 b=0x00000018 len=8 data=a3d23c9000000020
+#1   slot0 DEVCTL_RAW a=0x80040102 b=0x00000004 len=4 data=0005ffff
+#2   slot0 DEVCTL_RAW a=0x5db32d7f b=0x000000ff len=27 data=43671ff68a9dcb58b6953d39a70f7fdcf1f10b92c6e9e05248e27c
+#3   slot0 DEVCTL_RAW a=0x4004020c b=0x00000019 len=0
+#4   slot0 DEVCTL_RAW a=0x05ffff05 b=0x00000004 len=18 data=d84a00f47f00400010800040000000000000
+#5   slot0 DEVCTL_RAW a=0x00002000 b=0x00000000 len=0
+#6   slot0 DEVCTL_RAW a=0x00002000 b=0x00000000 len=0
+#7   slot0 DEVCTL_RAW a=0x80280228 b=0x0000003d len=40 data=0000000000000000000000000000000000000000000000000000000000000000...
+#8   slot0 LSEEK      a=0x05ffff05 b=0x00000002 len=0</pre><h3 id='f4'>4. DEADLINE in DEVCTL_RAW DCMD_BLK_FORCE_RELEARN (1012026 us)</h3><ul><li>Bucket <code>2eb92579aa23989b</code>, 1 hit(s), first at 60.4 s</li><li>Errno 0 </li><li>Worst reply latency 1012026 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_2eb92579aa23989b_0.rfz</code></li></ul><p>Test case (10 ops)</p><pre>#0   slot1 READ       a=0x0000800d b=0x05ffff05 len=0
+#1   slot0 DEVCTL_RAW a=0x00008202 b=0x00000016 len=2 data=e803
+#2   slot0 WRITE      a=0x00000000 b=0x00000000 len=31 data=879bed226bd67400d2b5cb42199119e4f0a32e283390beaff6ce10689f0e1b
+#3   slot0 DEVCTL_RAW a=0x00000202 b=0x00000000 len=0
+#4   slot0 DEVCTL_RAW a=0x40040104 b=0x00000004 len=8 data=a3be3c90a3be3c90
+#5   slot0 DEVCTL_RAW a=0x4208020c b=0x00000000 len=1 data=40
+#6   slot0 DEVCTL_RAW a=0x0000ffff b=0x00000018 len=28 data=00000000000000000000008b00000000001d00000000000000000000
+#7   slot0 DEVCTL_RAW a=0x80280228 b=0x00000002 len=40 data=000000000000002c212121522121de00008000000000000000e640ffff000000...
+#8   slot0 DEVCTL     a=0xa098e412 b=0x00000023 len=35 data=8b2299baabd95374df1555e420f46b03e8c370d3020000004c2db73281885b9d...
+#9   slot0 DEVCTL     a=0xa098e421 b=0x00000023 len=35 data=8b2299baabd9e803df1555e420f46b03e8c370d3020000004c2db73281885b9d...</pre><h3 id='f5'>5. DEADLINE in DEVCTL_RAW 0x80000000 (121186 us)</h3><ul><li>Bucket <code>4ec53fdf0b5f0413</code>, 1 hit(s), first at 8.9 s</li><li>Errno 0 </li><li>Worst reply latency 121186 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_4ec53fdf0b5f0413_0.rfz</code></li></ul><p>Test case (7 ops)</p><pre>#0   slot0 WRITE      a=0x00000000 b=0xfa0000fa len=4 data=00000080
+#1   slot0 DEVCTL_RAW a=0x80000000 b=0x00000120 len=288 data=0000000000000000000000000000000000000000000000000000000000000000...
+#2   slot0 DEVCTL_RAW a=0x80000000 b=0x00000120 len=288 data=0000000000000000000000000000000000000000000000000000000000000000...
+#3   slot0 DEVCTL_RAW a=0x80000000 b=0x00000120 len=288 data=0000000000000000000000000000000000000000000000000000000000000000...
+#4   slot0 DEVCTL     a=0x0000021c b=0x00000000 len=6 data=566926565256
+#5   slot0 DEVCTL_RAW a=0x40100201 b=0x0000004c len=256 data=0000000000000000000000000020000000000000000000000000000000000000...
+#6   slot0 DEVCTL_RAW a=0x0000021c b=0x00000040 len=8 data=c5d890c8554f8b57</pre><h3 id='f6'>6. DEADLINE in DEVCTL_RAW DCMD_FSYS_DIRECT_IO_OLD (336590 us)</h3><ul><li>Bucket <code>9e549b0b601ada4a</code>, 1 hit(s), first at 91.0 s</li><li>Errno 0 </li><li>Worst reply latency 336590 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_9e549b0b601ada4a_0.rfz</code></li></ul><p>Test case (12 ops)</p><pre>#0   slot0 DEVCTL_RAW a=0x41000216 b=0x00000086 len=76 data=0000000000000000000000000000000000ffff10000000000000000000000000...
+#1   slot0 DEVCTL_RAW a=0xc0480224 b=0x0000004c len=76 data=000000000000000000000000000000000000001000f200000000000000000000...
+#2   slot0 DEVCTL     a=0xc020021f b=0x00000020 len=32 data=cdae81636dc10bf67b1ba34492876ef07c563d3fe9c8eb89027322b4bc64c2b9
+#3   slot0 DEVCTL_RAW a=0x0000021c b=0x000007ff len=95 data=0000000000000000000000000000000000000000000000000000000000000000...
+#4   slot0 WRITE      a=0x00000000 b=0x00000000 len=124 data=8d1b37bcf14b9cab63a1856931992cd7d41c7009e24ee648925b21476c3cbee3...
+#5   slot0 DEVCTL_RAW a=0x40a8020d b=0x00000033 len=172 data=0000000001000000000000000000000000d13cb7b50000000000000000000000...
+#6   slot0 DEVCTL_RAW a=0x8018020f b=0x00000018 len=24 data=000000820000000000040000003b00000000000000000000
+#7   slot0 DEVCTL_RAW a=0x8018020f b=0x00000018 len=24 data=000000820000000000040000003b00000000000000000000
+#8   slot0 DEVCTL_RAW a=0x40042219 b=0x80000000 len=122 data=0000000000000000000000000000000000000000000000000000000000000000...
+#9   slot0 DEVCTL_RAW a=0xc01c0221 b=0x0000001c len=28 data=00000000806700000000000000000000000000000000000000000000
+#10  slot0 DEVCTL_RAW a=0x4004020d b=0x00003fff len=11 data=0000000080670000000000
+#11  slot0 DEVCTL_RAW a=0xc040022c b=0x00000084 len=126 data=0000000000000000000000000000000000000000000000000000000000000000...</pre><h3 id='f7'>7. DEADLINE in READ 0x00000004 (168956 us)</h3><ul><li>Bucket <code>ec972e40be780b44</code>, 1 hit(s), first at 109.4 s</li><li>Errno 0 </li><li>Worst reply latency 168956 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_ec972e40be780b44_0.rfz</code></li></ul><p>Test case (8 ops)</p><pre>#0   slot0 DEVCTL_RAW a=0x80040102 b=0x0000003d len=11 data=677074002f8e212e002f8e
+#1   slot0 DEVCTL_RAW a=0x40040101 b=0x00000004 len=1 data=2e
+#2   slot0 DEVCTL_RAW a=0x401001ee b=0x00000004 len=4 data=148401e0
+#3   slot0 DEVCTL     a=0x8018020f b=0x0000002a len=7 data=00800000c6e9b5
+#4   slot0 DEVCTL_RAW a=0x00000100 b=0x00000021 len=44 data=2f8e212eefe16eb43455b4b4b4b43b46b4b426212d743b9b1ed2624e5d3b3363...
+#5   slot0 READ       a=0x00000004 b=0x00000000 len=0
+#6   slot0 DEVCTL_RAW a=0x40040219 b=0x00001000 len=12 data=e7c370472537686300009b57
+#7   slot0 DEVCTL_RAW a=0x40040104 b=0x00008000 len=5 data=0663000000</pre><h3 id='f8'>8. DEADLINE in DEVCTL DCMD_FSYS_LABEL (273906 us)</h3><ul><li>Bucket <code>f2beca814280790d</code>, 1 hit(s), first at 70.8 s</li><li>Errno 0 </li><li>Worst reply latency 273906 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_f2beca814280790d_0.rfz</code></li></ul><p>Test case (14 ops)</p><pre>#0   slot0 DEVCTL_RAW a=0x4000018a b=0x68372547 len=9 data=042e00c6e9e052106b
+#1   slot0 DEVCTL_RAW a=0x4000018a b=0x00000000 len=5 data=042e001050
+#2   slot0 DEVCTL_RAW a=0x40a80212 b=0x00000040 len=40 data=000002000000b40000000000000000e900000000000000000000800000000001...
+#3   slot0 DEVCTL     a=0x41000212 b=0x00004000 len=1024 data=88a3af019090465f681c2f7a078b83e31b5d0000000000000000000000000000...
+#4   slot0 DEVCTL_RAW a=0xffff7fff b=0x00000002 len=288 data=0000000000000000000000000000000000000000000000000000000000000000...
+#5   slot0 DEVCTL     a=0x40a8020d b=0x000000a8 len=168 data=bb64b977e3a2a5541c782fc8dbcb9e2a0020000029f92f8735f8319f82bc860e...
+#6   slot0 DEVCTL_RAW a=0x80282222 b=0x00000028 len=40 data=00400000000000ffff2537780000008000000000000000000000000000000080...
+#7   slot0 DEVCTL_RAW a=0x00008000 b=0x00000013 len=256 data=1ac557ea79d13cb7b5936b000000000000000000000000000000000000000000...
+#8   slot0 DEVCTL_RAW a=0x80200220 b=0x00000040 len=40 data=ff7f02000000b40000000000000000e900000000000000000000800000000001...
+#9   slot0 WRITE      a=0x00000000 b=0x00040000 len=4 data=03e80000
+#10  slot0 READ       a=0x00000400 b=0x00000000 len=0
+#11  slot0 DEVCTL     a=0x41000216 b=0x00000028 len=40 data=b1271494854aa999a94534b592de76ed3d5b5bafb528609e6006549cd45e7f6d...
+#12  slot0 MSG_RAW    a=0x00000000 b=0x00000007 len=29 data=7775116e7c1300bbf40083cefb3bb9f71727f3bfe5aaeaec99397c5be9
+#13  slot0 DEVCTL     a=0x80200226 b=0x0000004d len=99 data=0000000000000000000000800000000000000000000000000000000000000000...</pre><h3 id='f9'>9. DEADLINE in DEVCTL_RAW 0xfa0000fa (1327804 us)</h3><ul><li>Bucket <code>f6e0ff828e7a4b8b</code>, 1 hit(s), first at 80.8 s</li><li>Errno 0 </li><li>Worst reply latency 1327804 us</li><li>Reproduce: <code>resfuzz-agent --target /dev/hd1 --spawn &quot;/data/resfuzz/rmwrap --wait /dev/hd1 --name devb-ram -- /data/resfuzz/devb-ram ram capacity=2048 blk cache=512k,auto=none&quot; --replay deadlines/deadline_f6e0ff828e7a4b8b_0.rfz</code></li></ul><p>Test case (6 ops)</p><pre>#0   slot0 DEVCTL_RAW a=0x80040102 b=0x000000aa len=174 data=000000ffff25377800003153264f316f314131a5ee318f313177a031a97e507f...
+#1   slot0 DEVCTL_RAW a=0x80200a20 b=0x00000022 len=3 data=000000
+#2   slot0 DEVCTL_RAW a=0x30591af4 b=0x0000000d len=23 data=f701dc7a08d3b4c1a33963f004036055cc2730a914412f
+#3   slot0 DEVCTL_RAW a=0x40000201 b=0x00000028 len=31 data=004000000005ffff05000000000000000000800000000000d13cb7b5000000
+#4   slot0 DEVCTL_RAW a=0x40000201 b=0x00000020 len=37 data=00000000ffff25377800000080000000000000000000000000000000800000e9...
+#5   slot0 DEVCTL_RAW a=0xfa0000fa b=0x00000045 len=16 data=e3ffffff000010806300006770740000</pre>
+</body></html>

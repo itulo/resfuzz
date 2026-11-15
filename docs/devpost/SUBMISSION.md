@@ -31,6 +31,16 @@ missing table entry, or spending half a second on its only thread. We wanted a
 tool that attacks that interface the way a hostile or buggy client would, on the
 real OS, and hands a developer a 1–2 message reproducer and a backtrace.
 
+This is a documented class of issue. BlackBerry advisory
+[QNX-2017-001](https://support.blackberry.com/pkb/s/article/46674) describes
+CVE-2017-3892 as an information-disclosure vulnerability in procfs, "a resource
+manager responsible for managing process information," reached by commands
+targeting those resources. [QNX-2023-001](https://support.blackberry.com/pkb/s/article/112401)
+(CVE-2023-32701) later recorded improper input validation in the networking stack
+(`io-pkt` / `io-sock`) that can cause information disclosure or denial of service.
+Those advisories cover earlier SDP releases; they show that bugs in message-facing
+user-space services have shipped and been fixed in the field.
+
 ## What it does
 
 `resfuzz run -c <campaign.toml>` boots (or reuses) a QNX 8.0 QEMU target, deploys
@@ -105,9 +115,15 @@ Every QNX assumption and how it was checked on SDP 8.0 is in `docs/TODO-QNX.md`.
 241,138 executions (~402/s), 114 edges; BUG3a 3.3 s, BUG2 10.0 s, BUG1 160.3 s,
 BUG3b 399.6 s.
 
-**Real SDP driver** [`docs/results/qnx-pty1/`]: the unmodified `devc-pty`, 300 s,
-83,270 executions, **0 crashes, 0 hangs**; 20 deadline events, none reproducible
-(TCG noise). We report that honestly rather than claim a bug.
+**Real SDP drivers** (no planted bugs). We report these honestly rather than claim a bug:
+
+- [`docs/results/qnx-pty1/`]: unmodified `devc-pty`, 300 s, 83,270 executions,
+  **0 crashes, 0 hangs**; 20 deadline events, none reproducible (TCG noise).
+- [`docs/results/qnx-devb-ram1/`]: unmodified `devb-ram` on a private 1 MiB RAM
+  disk (`/dev/hd1`, not the system disk), 120 s, 20,234 executions, **0 crashes**;
+  1 hang and 8 deadline events, none reproducible on a fresh server.
+- [`docs/results/qnx-mqueue1/`]: unmodified `mqueue` on `/dev/mqueue/rfz`, 180 s,
+  59,087 executions, **0 crashes, 0 hangs**; 2 deadline events, none reproducible.
 
 **AI seed step** [`docs/results/ai-seeds/`]: three validated seeds; replayed on
 QNX they exit crash / crash / hang (BUG1-, BUG2-, BUG3b-shaped).

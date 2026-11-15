@@ -9,3 +9,7 @@ resfuzz-results/
 qnx-image/
 *.core
 docs/video/*.mp4
+target/examples/mqwrap
+target/examples/rmwrap
+docs/video/v3-src/*.wav
+docs/video/v3-src/concat.txt

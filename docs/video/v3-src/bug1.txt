@@ -1,0 +1,1 @@
+The overflow only happens after admin mode. resfuzz recorded two hundred and seventy one messages and shrank them to two. They crash a fresh server every time.

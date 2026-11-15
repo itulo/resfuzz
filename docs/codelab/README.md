@@ -31,7 +31,10 @@ A QNX *resource manager* is a user-space server. Clients reach it with the
 ordinary POSIX calls `open`, `read`, `write`, `devctl`, …; the kernel turns
 each call into a message (`MsgSend`) and the server replies. Bugs live in how
 the server trusts the message: a length field it never checks, a table index it
-never validates, work that never finishes on its only thread.
+never validates, work that never finishes on its only thread. That is not only a lab pattern:
+BlackBerry's [QNX-2017-001](https://support.blackberry.com/pkb/s/article/46674)
+advisory describes a procfs resource-manager bug (CVE-2017-3892) triggered by
+commands targeting those resources.
 
 `resfuzz` drives that interface the way a malicious (or just buggy) client would,
 and reports three kinds of finding:

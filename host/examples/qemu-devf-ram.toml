@@ -1,0 +1,33 @@
+# Campaign against the SDP's own unmodified devf-ram (no planted bugs).
+# A private 4 MiB RAM-backed flash array is spawned; /dev/fs0p0 is the raw partition.
+# Point resmgr at your SDP copy; do not redistribute the QNX binary.
+#   python3 scripts/run-existing.py -c host/examples/qemu-devf-ram.toml --host <ip> \
+#     --extra target/examples/rmwrap --pre 'slay -f devf-ram || true; slay -f rmwrap || true'
+out_dir = "resfuzz-results/qnx-devf-ram1"
+
+[image]
+workdir = "qnx-image"
+arch = "x86_64"
+ssh_ident = "/home/me/.ssh/id_ed25519.pub"
+extra_args = ["--noprompt", "--data-size=512", "--data-inodes=65536"]
+
+[target]
+agent  = "target/build-qnx/resfuzz-agent"
+resmgr = "/home/me/qnx800/target/qnx/x86_64/sbin/devf-ram"
+path   = "/dev/fs0p0"
+spawn  = "/data/resfuzz/rmwrap --wait /dev/fs0p0 --name devf-ram -- /data/resfuzz/devf-ram -s0x0,4M"
+deploy_dir = "/data/resfuzz"
+dump_dir   = "/data/var/dumper"
+dicts = ["target/examples/dcmd_f3s.qnx.dict", "target/examples/dcmd_all.qnx.dict"]
+gdb = "ntox86_64-gdb"
+
+[fuzz]
+seconds = 300
+deadline_us = 100000
+hang_ms = 2000
+coverage = false
+agent_args = ["--respawn-every", "0"]  # one instance: do not restart mid-run
+
+[ssh]
+user = "root"
+identity = "/home/me/.ssh/id_ed25519"

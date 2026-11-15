@@ -1,0 +1,1 @@
+The agent runs on Q N X next to the server. It mutates open, read, write, dev control and raw messages, with coverage feedback.

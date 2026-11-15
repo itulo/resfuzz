@@ -1,0 +1,4 @@
+{"t_ms":8,"type":"start","detail":"platform=qnx target=/dev/mqueue/rfz coverage=0 seed=178961178328 cps=2397987774"}
+{"t_ms":104774,"type":"deadline","bucket":"980dfd3135269648","op_index":5,"op":"DEVCTL_RAW","dcmd":"0x91190106","errno":0,"errno_name":"","signal":0,"max_latency_us":122212,"latency_op":5,"file":"/data/resfuzz/out/deadlines/deadline_980dfd3135269648_0.rfz","reproducible":false,"execs":32358}
+{"t_ms":173333,"type":"deadline","bucket":"89ee84daea591565","op_index":7,"op":"DEVCTL","dcmd":"0x40040104","errno":0,"errno_name":"","signal":0,"max_latency_us":126761,"latency_op":7,"file":"/data/resfuzz/out/deadlines/deadline_89ee84daea591565_0.rfz","reproducible":false,"execs":56673}
+{"t_ms":180122,"type":"done","detail":""}

@@ -1,0 +1,35 @@
+# Campaign against the SDP's own unmodified pipe (no planted bugs).
+# Point resmgr at your SDP copy; do not redistribute the QNX binary.
+# Run against an already-booted target:
+#   scripts/qnx-up.sh
+#   python3 scripts/run-existing.py -c host/examples/qemu-pipe.toml --host <ip>
+out_dir = "resfuzz-results/qnx-pipe1"
+
+[image]
+workdir = "qnx-image"
+arch = "x86_64"
+ssh_ident = "/home/me/.ssh/id_ed25519.pub"
+extra_args = ["--noprompt", "--data-size=512", "--data-inodes=65536"]
+
+[target]
+agent  = "target/build-qnx/resfuzz-agent"
+resmgr = "/home/me/qnx800/target/qnx/x86_64/sbin/pipe"
+path   = "/dev/pipe"
+spawn  = ""
+deploy_dir = "/data/resfuzz"
+dump_dir   = "/data/var/dumper"
+dicts = ["target/examples/dcmd_all.qnx.dict"]
+gdb = "ntox86_64-gdb"
+
+[fuzz]
+seconds = 300
+deadline_us = 100000
+hang_ms = 2000
+coverage = false
+agent_args = ["--nonblock"]  # a pipe read with no writer must not look like a hang
+# spawn is left unset: slaying the image pipe breaks ssh/ksh (they need /dev/pipe).
+# The campaign attaches to the running system pipe.
+
+[ssh]
+user = "root"
+identity = "/home/me/.ssh/id_ed25519"

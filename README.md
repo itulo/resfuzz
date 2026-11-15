@@ -66,6 +66,17 @@ gateways, medical monitors and industrial controllers put device I/O behind
 resource managers precisely because the microkernel keeps faults isolated; that
 isolation only helps if the server itself is robust against the messages it accepts.
 
+This is a documented class of issue, not only a lab concern. BlackBerry advisory
+[QNX-2017-001](https://support.blackberry.com/pkb/s/article/46674) describes
+CVE-2017-3892 as an information-disclosure vulnerability in procfs, "a resource
+manager responsible for managing process information," reached by "commands
+targeting procfs resources." [QNX-2023-001](https://support.blackberry.com/pkb/s/article/112401)
+(CVE-2023-32701) later recorded improper input validation in the QNX networking
+stack (`io-pkt` / `io-sock`) that can cause information disclosure or denial of
+service from a local process. Those advisories cover earlier SDP releases; they
+are cited here as public evidence that bugs in message-facing user-space services
+have shipped, been fixed, and matter in the field.
+
 resfuzz attacks the same interface those servers expose to every client:
 
 - **Trusted length fields.** `devctl` carries a claimed `nbytes` that the server
@@ -111,8 +122,17 @@ Every run5 finding has a minimised reproducer that replays 3/3 on a fresh server
 Bring the target up with
 `scripts/qnx-up.sh` (`--serial` for a console on COM2, `--stop` to shut it down).
 
-A second campaign against the SDP's own unmodified `devc-pty` (no planted bugs) is documented in
-[docs/results/qnx-pty1](docs/results/qnx-pty1/NOTES.md); config: [host/examples/qemu-devc-pty.toml](host/examples/qemu-devc-pty.toml).
+Campaigns against the SDP's own unmodified resource managers (no planted bugs) are
+documented under [docs/results](docs/results/):
+
+| Target | Result | Config |
+|---|---|---|
+| `devc-pty` (`/dev/ptyp0`, 300 s) | 83,270 execs, **0 crashes, 0 hangs**; 20 deadline events, none reproducible | [qnx-pty1](docs/results/qnx-pty1/NOTES.md), [qemu-devc-pty.toml](host/examples/qemu-devc-pty.toml) |
+| `devb-ram` (private `/dev/hd1`, 120 s) | 20,234 execs, **0 crashes**; 1 hang and 8 deadline events, none reproducible | [qnx-devb-ram1](docs/results/qnx-devb-ram1/NOTES.md), [qemu-devb-ram.toml](host/examples/qemu-devb-ram.toml) |
+| `mqueue` (`/dev/mqueue/rfz`, 180 s) | 59,087 execs, **0 crashes, 0 hangs**; 2 deadline events, none reproducible | [qnx-mqueue1](docs/results/qnx-mqueue1/NOTES.md), [qemu-mqueue.toml](host/examples/qemu-mqueue.toml) |
+
+Those honest null results still exercise dictgen from SDP headers, spawning a
+daemonizing driver, and the same host report path used on `buggy_rm`.
 
 Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
 fresh-server replay may not reproduce it (TODO-QNX F3).

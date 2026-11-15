@@ -1,0 +1,1 @@
+On Q N X, drivers and services are resource managers. Every client reaches them by message passing. resfuzz attacks that interface on the real operating system.

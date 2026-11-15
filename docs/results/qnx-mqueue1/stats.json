@@ -1,0 +1,1 @@
+{"version":"0.1.0","platform":"qnx","target":"/dev/mqueue/rfz","elapsed_s":180.1,"execs":59087,"execs_per_s":328.0,"crashes":0,"hangs":0,"deadline_misses":2,"setup_failures":0,"respawns":0,"coverage":false,"edges":0,"reply_signatures":8179,"buckets":2,"max_latency_us":126761,"cycles_per_sec":2397987774,"deadline_us":100000,"seed":178961178328}

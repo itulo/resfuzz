@@ -1,0 +1,1 @@
+Every crash and hang comes with a dumper core and a backtrace through Q N X's own resource manager layer.

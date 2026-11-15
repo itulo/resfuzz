@@ -244,7 +244,10 @@ class QemuCampaign:
         # fetch cores BEFORE minimising: minimisation crashes the server again
         cores = self.out / "cores" / f.bucket
         cores.mkdir(parents=True, exist_ok=True)
-        if t.get(f"{dd}/.", str(cores), recursive=True).ok:
+        # A core only belongs to this finding if the replay crashed or hung;
+        # otherwise it is the agent's own SIGABRT at shutdown.
+        replay_failed = EXIT_CODES.get(r.returncode) in ("crash", "hang")
+        if replay_failed and t.get(f"{dd}/.", str(cores), recursive=True).ok:
             for core in sorted(p for p in cores.iterdir() if not p.name.endswith(".bt.txt")):
                 bt = self.runner(gdb_argv(self.cfg.target.resmgr, str(core), self.gdb), timeout=120)
                 if bt.ok:

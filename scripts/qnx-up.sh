@@ -8,9 +8,15 @@
 #      QNX_SSH_KEY (default ~/.ssh/qnx_resfuzz_ed25519; the .pub is baked into the image).
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
+# SDP: $QNX_SDP, else the one whose env script is already sourced ($QNX_HOST), else ~/qnx800.
+if [[ -z ${QNX_SDP:-} && -n ${QNX_HOST:-} ]]; then QNX_SDP=$(cd "$QNX_HOST/../../.." && pwd); fi
 sdp=${QNX_SDP:-$HOME/qnx800}
 img=${QNX_IMAGE_DIR:-$repo/qnx-image}
 key=${QNX_SSH_KEY:-$HOME/.ssh/qnx_resfuzz_ed25519}
+if [[ ! -f $sdp/qnxsdp-env.sh ]]; then
+    echo "qnx-up: no QNX SDP 8.0 at $sdp; set QNX_SDP=<install dir> or source its qnxsdp-env.sh first" >&2
+    exit 1
+fi
 # shellcheck disable=SC1091
 source "$sdp/qnxsdp-env.sh" >/dev/null
 export PATH=$PATH:/usr/sbin:/sbin
@@ -67,6 +73,13 @@ fi
 # Bridge + DHCP for mkqnximage's QEMU networking (same call runimage makes).
 if ! ip link show br0 >/dev/null 2>&1 || ! pgrep -f 'dnsmasq --interface=br0' >/dev/null; then
     sudo bash "$QNX_HOST/../../common/mkqnximage/qemu/net.sh" "$helper" /etc/qemu/bridge.conf nat br0
+fi
+
+# The image bakes in $key.pub for root's ssh login: create the key pair once.
+if [[ ! -f $key || ! -f $key.pub ]]; then
+    mkdir -p "$(dirname "$key")" && chmod 700 "$(dirname "$key")"
+    ssh-keygen -q -t ed25519 -N "" -C resfuzz-qnx -f "$key"
+    echo "qnx-up: created ssh key $key (its .pub goes into the image)"
 fi
 
 # Image customisation lives in the repo (scripts/qnx-image-snippets): sshd-auth,

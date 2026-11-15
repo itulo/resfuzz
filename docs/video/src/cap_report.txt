@@ -1,0 +1,2 @@
+The HTML report: every finding bucketed, minimised, replayed on a fresh server, with a
+backtrace.

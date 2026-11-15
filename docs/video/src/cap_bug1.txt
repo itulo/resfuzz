@@ -1,0 +1,2 @@
+BUG1 only happens after admin mode. 271 recorded messages shrink to 2 - and crash a
+fresh server every time.

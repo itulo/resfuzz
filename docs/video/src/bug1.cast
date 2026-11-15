@@ -1,0 +1,12 @@
+{"version": 2, "width": 120, "height": 26, "timestamp": 1794737680, "env": {"SHELL": null, "TERM": "xterm-256color"}}
+[0.005515, "o", "\u001b[1;32m$\u001b[0m resfuzz decode docs/results/qnx-run5/min/crash_38d435f06c3e3629_2.seq | head -4   # recorded history\r\n"]
+[0.883528, "o", "sequence of 271 test cases (one server instance); last 3:\r\n-- case 268\r\n#0   slot0 DEVCTL_RAW a=0xc0100543 b=0x00000010 len=16 data=00000000000000040000000000000000\r\n#1   slot0 DEVCTL_RAW a=0x0000fff3 b=0xfa0000fa len=0\r\n"]
+[2.893674, "o", "\u001b[1;32m$\u001b[0m resfuzz decode docs/results/qnx-run5/min/crash_38d435f06c3e3629_2.seq.min        # minimised\r\n"]
+[3.766188, "o", "#0   slot0 DEVCTL_RAW a=0x80080540 b=0x00000004 len=8 data=41444d4e02000000\r\n#1   slot0 DEVCTL     a=0x80200541 b=0x00000020 len=34 data=00000000000000000000000000000000000000000000000000\r\n"]
+[6.728129, "o", "\u001b[1;32m$\u001b[0m for i in 1 2 3; do resfuzz-agent --target /dev/buggy --spawn buggy_rm --replay bug1.min; echo exit:$?; done   # on QNX\r\n"]
+[8.403437, "o", "{\"result\":\"crash\",\"op_index\":1,\"errno\":3,\"signal\":11,\"max_latency_us\":\r\n"]
+[8.404701, "o", "exit:10  (10 = crash)\r\n"]
+[8.55587, "o", "{\"result\":\"crash\",\"op_index\":1,\"errno\":3,\"signal\":11,\"max_latency_us\":\r\n"]
+[8.558308, "o", "exit:10  (10 = crash)\r\n"]
+[8.679872, "o", "{\"result\":\"crash\",\"op_index\":1,\"errno\":3,\"signal\":11,\"max_latency_us\":\r\n"]
+[8.681454, "o", "exit:10  (10 = crash)\r\n"]

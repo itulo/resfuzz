@@ -1,0 +1,14 @@
+s2-make                rc=0       3.9s
+s2-venv                rc=0       3.6s
+s2-local-blind         rc=0      31.1s
+s2-replay              rc=0       0.0s
+s3-local-cov           rc=0      73.6s
+s4-qcc                 rc=0       0.0s
+s4-qcc                 rc=0       0.0s
+s4-make-qnx            rc=0       1.7s
+s4-up-literal          rc=1       0.0s
+s4-up                  rc=0      19.1s
+s4-ssh                 rc=0       0.4s
+s5-dictgen             rc=1       0.2s
+s5-dictgen             rc=0       1.0s
+s6-run                 rc=0     837.9s

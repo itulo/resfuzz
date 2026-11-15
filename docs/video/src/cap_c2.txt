@@ -1,0 +1,2 @@
+On QNX, drivers and services are resource managers, reached by message passing. resfuzz
+attacks that interface on the real OS.

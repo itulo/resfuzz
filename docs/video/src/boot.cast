@@ -1,0 +1,6 @@
+{"version": 2, "width": 120, "height": 26, "timestamp": 1794737702, "env": {"SHELL": null, "TERM": "xterm-256color"}}
+[0.008722, "o", "\u001b[1;32m$\u001b[0m scripts/qnx-up.sh          # QNX SDP 8.0 · mkqnximage QEMU x86_64 · TCG (no KVM)\r\n"]
+[0.069007, "o", "qnx-up: (re)building the image (snippets or binaries changed); /data is recreated\r\n"]
+[18.671785, "o", "QNX noname 8.0.0 2026/06/05-16:26:03EDT x86pc x86_64\r\n"]
+[18.676731, "o", "qnx-up: target up at 172.31.1.189  (ssh -i ~/.ssh/qnx_resfuzz_ed25519 root@172.31.1.189); serial: scripts/qnx-up.sh --serial\r\n"]
+[18.678538, "o", "  (booted in 19 s)\r\n"]

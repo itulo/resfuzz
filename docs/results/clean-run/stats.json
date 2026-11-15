@@ -1,0 +1,1 @@
+{"version":"0.1.0","platform":"qnx","target":"/dev/buggy","elapsed_s":600.0,"execs":241138,"execs_per_s":401.9,"crashes":201,"hangs":2,"deadline_misses":257,"setup_failures":0,"respawns":372,"coverage":true,"edges":114,"reply_signatures":8082,"buckets":8,"max_latency_us":16350744,"cycles_per_sec":2396462132,"deadline_us":100000,"seed":53065122214}

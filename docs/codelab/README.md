@@ -16,6 +16,7 @@ real-time deadline misses automatically with coverage-guided fuzzing.
 | Packages | `build-essential`, `python3`, `python3-venv`, `make` | plus `qemu-system-x86`, `qemu-utils`, `bridge-utils`, `dnsmasq-base`, `iputils-ping` |
 | Disk | ~500 MB | ~4 GB for the SDP (already installed) + ~1 GB for the image |
 | Accounts | none | a free [myQNX](https://www.qnx.com/) account and a non-commercial SDP 8.0 licence |
+| Licence on disk | — | deployed by QNX Software Center into **your** `~/.qnx/license`; without it `qcc -V` prints "You don't have a valid license" |
 
 **TCG only on this box.** The host kernel panics if QEMU uses KVM here, so
 `scripts/qnx-up.sh` refuses to start when `/dev/kvm` is accessible. On a normal
@@ -72,7 +73,8 @@ resfuzz local --seconds 30 --no-cov --out /tmp/rf-blind
 xdg-open /tmp/rf-blind/report.html   # or: python3 -m http.server --directory /tmp/rf-blind
 ```
 
-Pick one high-severity finding. Note:
+Pick one high-severity finding. In local mode the minimised reproducer sits next to the
+original as `crashes/<bucket>_0.min.rfz` (on QNX campaigns it is `min/<file>.min`). Note:
 
 - the *bucket* (stable hash of the call site),
 - whether it is marked *reproducible*,
@@ -85,9 +87,9 @@ Replay it by hand:
 ./target/build/resfuzz-agent \
   --target /tmp/rf.sock \
   --spawn "./target/build/mock_rm /tmp/rf.sock" \
-  --replay /tmp/rf-blind/min/<the-file>.min
+  --replay /tmp/rf-blind/crashes/<bucket>_0.min.rfz
 echo $?    # 10 = crash, 11 = hang, 12 = deadline
-./target/build/resfuzz-agent --decode /tmp/rf-blind/min/<the-file>.min
+./target/build/resfuzz-agent --decode /tmp/rf-blind/crashes/<bucket>_0.min.rfz
 ```
 
 **Troubleshooting**
@@ -123,11 +125,12 @@ server so "reproducible" means what it says.
 
 ## Step 4 — Set up the QNX side (12 min)
 
-1. Install QNX SDP 8.0, then:
+1. Install QNX SDP 8.0 (QNX Software Center; this codelab assumes `~/qnx800`, use your own
+   path otherwise), then:
 
 ```sh
 source ~/qnx800/qnxsdp-env.sh
-qcc -V                      # expect: gcc_nto* variants including gcc_ntox86_64
+qcc -V                      # expect: "targets available" incl. 12.2.0,gcc_ntox86_64
 ```
 
 2. Cross-build the agent and the demo resource manager:
@@ -141,7 +144,8 @@ sets up a bridge (`br0`), bakes the binaries into the image, boots headless and
 waits for ssh:
 
 ```sh
-scripts/qnx-up.sh           # refuses to start if /dev/kvm is accessible (TCG only)
+scripts/qnx-up.sh           # uses the SDP you sourced (or QNX_SDP=…); refuses to start if /dev/kvm is accessible
+# first run: "created ssh key ~/.ssh/qnx_resfuzz_ed25519", then builds the image
 # … ends with: target up at 172.31.1.N
 ssh -i ~/.ssh/qnx_resfuzz_ed25519 root@172.31.1.N 'ls /data/resfuzz'
 ```
@@ -180,13 +184,16 @@ resfuzz dictgen target/buggy_rm/buggy_rm.h \
 #   --header-include '<sys/dcmd_chr.h>' --include termios.h --include sys/ioctl.h
 
 source ~/qnx800/qnxsdp-env.sh
-qcc -Vgcc_ntox86_64 -o /tmp/dcmd_resolver /tmp/resolver.c
+qcc -Vgcc_ntox86_64 -Itarget/buggy_rm -o /tmp/dcmd_resolver /tmp/resolver.c   # -I: where the header lives
 scp -i ~/.ssh/qnx_resfuzz_ed25519 /tmp/dcmd_resolver root@172.31.1.N:/data/
 ssh -i ~/.ssh/qnx_resfuzz_ed25519 root@172.31.1.N /data/dcmd_resolver > /tmp/resolved.txt
 
 resfuzz dictgen target/buggy_rm/buggy_rm.h \
-  --resolved /tmp/resolved.txt --out target/examples/buggy_rm.qnx.dict
+  --resolved /tmp/resolved.txt --out /tmp/buggy_rm.qnx.dict
+diff <(grep ^dcmd /tmp/buggy_rm.qnx.dict) <(grep ^dcmd target/examples/buggy_rm.qnx.dict) && echo same
 ```
+
+(Write to `/tmp`: the committed dictionary also has hand-added tokens that a regeneration would drop.)
 
 **Expected:** lines like `dcmd DCMD_BUGGY_SET_MODE 0x80080540 size=8 dir=to`, plus
 token lines for magics (`buggy_magic_admin="ADMN"`).
@@ -209,8 +216,10 @@ Validated seeds land as `ai_seed_NNN.rfz`. See [docs/results/ai-seeds/](../resul
 ## Step 6 — Fuzz on QNX (10 min)
 
 ```sh
-# edit host/examples/qemu.toml so ssh.identity and image.ssh_ident point at your key
-resfuzz run -c host/examples/qemu.toml --no-build
+# edit host/examples/qemu.toml: replace /home/me/.ssh/id_ed25519 with ~/.ssh/qnx_resfuzz_ed25519
+# (absolute path) in both image.ssh_ident (.pub) and ssh.identity
+source ~/qnx800/qnxsdp-env.sh   # puts ntox86_64-gdb on PATH for the backtraces
+resfuzz run -c host/examples/qemu.toml --no-build   # ~10 min fuzzing + ~5 min triage under TCG
 ```
 
 While it runs you can watch live:
@@ -245,7 +254,7 @@ Replay BUG1's sequence on the target (the one that needs earlier messages):
 
 ```sh
 scp -i ~/.ssh/qnx_resfuzz_ed25519 \
-  docs/results/qnx-run5/min/crash_*SET_NAME*.seq.min \
+  docs/results/qnx-run5/min/crash_38d435f06c3e3629_2.seq.min \
   root@172.31.1.N:/data/resfuzz/
 ssh -i ~/.ssh/qnx_resfuzz_ed25519 root@172.31.1.N \
   '/data/resfuzz/resfuzz-agent --target /dev/buggy \
@@ -267,8 +276,9 @@ Now peek at the fixes in `target/buggy_rm/buggy_logic.c`:
 2. **BUG2** — reject indices whose table slot is NULL.
 3. **BUG3** — reject or cap `n` *before* `n + 1`, and never take the slow path unboundedly on the server thread.
 
-Rebuild, redeploy (`scripts/qnx-up.sh` rebuilds when the binary stamp changes) and
-rerun: the planted bugs should be gone.
+Exercise: apply those three fixes yourself, `make -C target qnx`, run `scripts/qnx-up.sh`
+(it rebuilds the image when the binary changes) and rerun the campaign — the planted
+crash and hang findings should disappear.
 
 ---
 

@@ -83,3 +83,17 @@ def test_bug1_is_stateful_and_minimises_to_two_ops(agent, tmp_path):
     assert [op.a for op in mini.ops] == [SET_MODE, SET_NAME]
     for _ in range(3):   # deterministic on a fresh server every time
         assert _agent(agent, tmp_path, "--replay", str(tmp_path / "m.rfz")).returncode == 10
+
+
+def test_replay_file_prefers_solo_reproducible(tmp_path):
+    from resfuzz.triage import group_findings
+    evs = [
+        {"type": "hang", "bucket": "b", "op": "DEVCTL_RAW", "dcmd": "0xc00c0544", "t_ms": 1,
+         "file": "/x/hangs/hang_b_0.rfz", "reproducible": False,
+         "sequence": "/x/hangs/hang_b_0.seq", "sequence_reproducible": True, "sequence_cases": 813},
+        {"type": "hang", "bucket": "b", "op": "DEVCTL_RAW", "dcmd": "0xc00c0544", "t_ms": 2,
+         "file": "/x/hangs/hang_b_1.rfz", "reproducible": True},
+    ]
+    (f,) = group_findings(evs, tmp_path)
+    assert f.reproducible and f.replay_file == "/x/hangs/hang_b_1.rfz"
+    assert f.first_t_ms == 1 and f.repro_label == "yes"

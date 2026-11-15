@@ -122,7 +122,8 @@ def cmd_dictgen(a) -> int:
 
 
 def cmd_decode(a) -> int:
-    print(TestCase.load(a.file).describe())
+    from .testcase import load_any
+    print(load_any(a.file).describe())    # RFZ1 test case or RFS1 sequence
     return 0
 
 

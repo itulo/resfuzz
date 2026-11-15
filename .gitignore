@@ -8,3 +8,4 @@ resfuzz-out/
 resfuzz-results/
 qnx-image/
 *.core
+docs/video/*.mp4

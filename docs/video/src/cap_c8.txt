@@ -1,0 +1,2 @@
+Pointed at the SDP's own pty driver it found nothing, and says so. AI seeds are
+validated; dcmd numbers come from the target.

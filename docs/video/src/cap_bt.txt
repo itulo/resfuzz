@@ -1,0 +1,1 @@
+Each crash comes with a dumper core and a gdb backtrace through QNX's own resmgr layer.

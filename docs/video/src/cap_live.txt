@@ -1,0 +1,2 @@
+The agent runs on QNX next to the server: open, read, write, devctl and raw MsgSend,
+with coverage feedback.

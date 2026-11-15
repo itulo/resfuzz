@@ -52,6 +52,7 @@ class Finding:
     sequences: list[str] = field(default_factory=list)   # RFS1 history files (stateful findings)
     seq_reproducible: bool | None = None
     seq_cases: int = 0
+    solo: set[str] = field(default_factory=set, repr=False)   # files that reproduced alone
 
     @property
     def deterministic(self) -> bool:
@@ -181,7 +182,14 @@ def group_findings(events: list[dict], out_dir: str | Path, dcmd_names: dict[int
         elif rep is False and f.reproducible is None:
             f.reproducible = False
         if ev.get("file"):
-            f.files.append(ev["file"])
+            # A case that reproduces on its own is the best replay/minimise
+            # input: put it first, ahead of flaky earlier hits of the bucket
+            # (seen on QNX: a load-induced BUG3a "hang" preceded the real BUG3b).
+            if rep is True and not any(x in f.solo for x in f.files):
+                f.files.insert(0, ev["file"])
+                f.solo.add(ev["file"])
+            else:
+                f.files.append(ev["file"])
         if ev.get("sequence"):
             if ev.get("sequence_reproducible") is True:
                 f.sequences.insert(0, ev["sequence"])

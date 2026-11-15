@@ -1,0 +1,1 @@
+Ten minutes in: all four planted bugs, each with a 1-2 message reproducer.

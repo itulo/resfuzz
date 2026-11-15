@@ -15,7 +15,8 @@ def _md_escape(s: str) -> str:
 
 
 def _repro_cmd(f: Finding, target: str, spawn: str | None) -> str:
-    file = Path(f.files[0]).name if f.files else "CASE.rfz"
+    rf = f.replay_file
+    file = Path(rf).name if rf else "CASE.rfz"
     sp = f' --spawn "{spawn}"' if spawn else ""
     sub = {"crash": "crashes", "hang": "hangs", "deadline": "deadlines"}[f.type]
     return f"resfuzz-agent --target {target}{sp} --replay {sub}/{file}"
@@ -44,7 +45,7 @@ def render_markdown(findings: list[Finding], stats: dict, meta: dict) -> str:
     else:
         lines += ["## Findings", "", "| # | Severity | Finding | Hits | Reproducible |", "|---|---|---|---|---|"]
         for i, f in enumerate(findings, 1):
-            rep = {True: "yes", False: "no (stateful/flaky)", None: "not checked"}[f.reproducible]
+            rep = f.repro_label
             lines.append(f"| {i} | {f.severity} | {_md_escape(f.title)} | {f.count} | {rep} |")
         for i, f in enumerate(findings, 1):
             lines += ["", f"### {i}. {_md_escape(f.title)}", "",
@@ -55,6 +56,9 @@ def render_markdown(findings: list[Finding], stats: dict, meta: dict) -> str:
             if f.type == "deadline":
                 lines.append(f"- Worst reply latency: {f.max_latency_us} us (deadline {stats.get('deadline_us', '?')} us)")
             lines += [f"- Reproduce: `{_repro_cmd(f, target, spawn)}`"]
+            if f.seq_reproducible and not f.reproducible:
+                lines.append(f"- Stateful: needs earlier messages; reproduces deterministically when the recorded "
+                             f"{f.seq_cases}-case history is replayed against a fresh server")
             tc = f.minimized or f.testcase
             if tc is not None:
                 label = "Minimised reproducer" if f.minimized else "Test case"
@@ -78,7 +82,7 @@ def render_html(findings: list[Finding], stats: dict, meta: dict) -> str:
     target, spawn = meta.get("target", "?"), meta.get("spawn")
     rows = "".join(
         f"<tr><td>{i}</td><td class='sev-{e(f.severity)}'>{e(f.severity)}</td><td><a href='#f{i}'>{e(f.title)}</a></td>"
-        f"<td>{f.count}</td><td>{ {True: 'yes', False: 'no', None: '-'}[f.reproducible] }</td></tr>"
+        f"<td>{f.count}</td><td>{e(f.repro_label)}</td></tr>"
         for i, f in enumerate(findings, 1))
     details = []
     for i, f in enumerate(findings, 1):

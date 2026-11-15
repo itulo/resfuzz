@@ -77,4 +77,21 @@ void   rf_tc_dump(const rf_tc *tc, FILE *out);
 int    rf_tc_save(const rf_tc *tc, const char *path);
 int    rf_tc_load(rf_tc *tc, const char *path);
 
+/*
+ * Sequence file ("RFS1"): the test cases one server instance executed, in
+ * order, ending with the one that failed. Servers keep state between test
+ * cases (e.g. buggy_rm's admin mode), so a finding that does not reproduce
+ * alone on a fresh server is saved as a sequence and replayed as a whole.
+ *   magic[4] "RFS1", u32 ncases, then per case: u32 len, len bytes of RFZ1.
+ */
+#define RF_SEQ_MAGIC   "RFS1"
+#define RF_SEQ_MAX     4096u
+int    rf_seq_save(const rf_tc *const *cases, unsigned n, const char *path);
+/* Allocates *cases (n entries, each initialised); free with rf_seq_free. */
+int    rf_seq_load(rf_tc **cases, unsigned *n, const char *path);
+void   rf_seq_free(rf_tc *cases, unsigned n);
+int    rf_file_is_seq(const char *path);
+/* Concatenate cases into one (ops of each in order); -1 if > RF_MAX_OPS ops. */
+int    rf_seq_flatten(rf_tc *dst, const rf_tc *cases, unsigned n);
+
 #endif

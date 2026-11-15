@@ -22,7 +22,7 @@ from .control import SshTarget, Target
 from .qemu import MkQnxImage, check_sdk
 from .report import write_reports
 from .runner import Result, Runner, run_subprocess
-from .testcase import FormatError, TestCase
+from .testcase import FormatError, TestCase, load_any
 from .triage import Finding, gdb_argv, group_findings, load_dict_names, load_events, parse_backtrace
 
 EXIT_CODES = {0: "ok", 10: "crash", 11: "hang", 12: "deadline", 2: "setup_fail"}
@@ -69,6 +69,17 @@ class CampaignResult:
     malformed_events: int = 0
 
 
+def _resolve_local(path: str, out: Path) -> Path:
+    """Event paths are agent paths; locally they usually are already valid."""
+    p = Path(path)
+    if p.exists():
+        return p
+    for anc in ("crashes", "hangs", "deadlines"):
+        if anc in p.parts:
+            return out / Path(*p.parts[p.parts.index(anc):])
+    return p
+
+
 class LocalCampaign:
     def __init__(self, repo_root: str | Path, out_dir: str | Path, *, seconds: int = 30, coverage: bool = True,
                  deadline_us: int = 5000, hang_ms: int = 1000, seed: int | None = None, dicts=None,
@@ -102,16 +113,16 @@ class LocalCampaign:
         return self.runner(argv, timeout=self.seconds + 120)
 
     def minimize_finding(self, f: Finding) -> None:
-        if not f.files or f.type not in ("crash", "hang") or f.reproducible is False:
+        if not f.files or f.type not in ("crash", "hang") or not f.deterministic:
             return
-        src = f.files[0]
+        src = str(_resolve_local(f.replay_file, self.out))
         dst = str(Path(src).with_suffix(".min.rfz"))
         argv = [self.agent, "--target", self.sock, "--spawn", self.spawn, "--out", str(self.out / "minimize"),
                 "--hang-ms", str(self.hang_ms), "--minimize", src, "--min-out", dst]
         r = self.runner(argv, timeout=300)
         if r.ok:
             try:
-                f.minimized = TestCase.load(dst)
+                f.minimized = load_any(dst)
             except (OSError, FormatError):
                 pass
 
@@ -221,7 +232,7 @@ class QemuCampaign:
         if not f.files or f.type == "deadline":
             return
         t, q = self.target, shlex.quote
-        remote_case = f.files[0]
+        remote_case = f.replay_file or f.files[0]
         dd = self.cfg.target.dump_dir
         t.run(f"rm -f {q(dd)}/*")
         agent = f"{self.rdir}/{Path(self.cfg.target.agent).name}"
@@ -240,7 +251,7 @@ class QemuCampaign:
                     f.frames = parse_backtrace(bt.stdout)
                     (cores / (core.name + ".bt.txt")).write_text(bt.stdout)
                     break
-        if f.type in ("crash", "hang") and self.cfg.target.spawn:
+        if f.type in ("crash", "hang") and self.cfg.target.spawn and f.deterministic:
             mn = remote_case + ".min"
             m = t.run(" ".join(q(x) for x in replay[:-2] + ["--minimize", remote_case, "--min-out", mn]), timeout=900)
             if m.ok:
@@ -248,7 +259,7 @@ class QemuCampaign:
                 local.parent.mkdir(parents=True, exist_ok=True)
                 if t.get(mn, str(local)).ok:
                     try:
-                        f.minimized = TestCase.load(local)
+                        f.minimized = load_any(local)
                     except (OSError, FormatError):
                         pass
 

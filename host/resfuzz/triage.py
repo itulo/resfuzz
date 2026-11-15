@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .testcase import FormatError, TestCase
+from .testcase import FormatError, Sequence, TestCase, load_any
 
 SIGNALS_LINUX = {4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGBUS", 8: "SIGFPE", 9: "SIGKILL",
                  10: "SIGUSR1", 11: "SIGSEGV", 12: "SIGUSR2", 13: "SIGPIPE", 31: "SIGSYS"}
@@ -46,9 +46,32 @@ class Finding:
     first_t_ms: int = 0
     files: list[str] = field(default_factory=list)
     testcase: TestCase | None = None
-    minimized: TestCase | None = None
+    minimized: TestCase | Sequence | None = None
     frames: list[Frame] = field(default_factory=list)
     platform: str = "linux"             # agent platform; selects the signal numbering
+    sequences: list[str] = field(default_factory=list)   # RFS1 history files (stateful findings)
+    seq_reproducible: bool | None = None
+    seq_cases: int = 0
+
+    @property
+    def deterministic(self) -> bool:
+        """Reproduces on a fresh server, alone or as the recorded sequence."""
+        return bool(self.reproducible or self.seq_reproducible)
+
+    @property
+    def repro_label(self) -> str:
+        if self.reproducible:
+            return "yes"
+        if self.seq_reproducible:
+            return f"yes, stateful ({self.seq_cases}-case sequence)"
+        return {False: "no (stateful/flaky)", None: "not checked"}[self.reproducible]
+
+    @property
+    def replay_file(self) -> str | None:
+        """What to replay/minimise: the single case, or its sequence if only that reproduces."""
+        if not self.reproducible and self.seq_reproducible and self.sequences:
+            return self.sequences[0]
+        return self.files[0] if self.files else None
 
     @property
     def signal_name(self) -> str:
@@ -159,6 +182,15 @@ def group_findings(events: list[dict], out_dir: str | Path, dcmd_names: dict[int
             f.reproducible = False
         if ev.get("file"):
             f.files.append(ev["file"])
+        if ev.get("sequence"):
+            if ev.get("sequence_reproducible") is True:
+                f.sequences.insert(0, ev["sequence"])
+                f.seq_reproducible = True
+                f.seq_cases = int(ev.get("sequence_cases", 0) or 0)
+            else:
+                f.sequences.append(ev["sequence"])
+                if f.seq_reproducible is None:
+                    f.seq_reproducible = False
     for f in by_bucket.values():
         for file in f.files:
             try:
@@ -168,7 +200,7 @@ def group_findings(events: list[dict], out_dir: str | Path, dcmd_names: dict[int
                 continue
     order = {"crash": 0, "hang": 1, "deadline": 2}
     return sorted(by_bucket.values(),
-                  key=lambda f: (order[f.type], f.reproducible is False, -f.count, f.bucket))
+                  key=lambda f: (order[f.type], not f.deterministic, -f.count, f.bucket))
 
 
 # "#0  0x0000000000401136 in func (a=1) at buggy.c:42" | "#1  func () at x.c:3" | "#2  0x... in ?? ()"
@@ -210,5 +242,5 @@ def summarize(findings: list[Finding]) -> dict:
     s = {t: 0 for t in FINDING_TYPES}
     for f in findings:
         s[f.type] += 1
-    s["reproducible"] = sum(1 for f in findings if f.reproducible)
+    s["reproducible"] = sum(1 for f in findings if f.deterministic)
     return s

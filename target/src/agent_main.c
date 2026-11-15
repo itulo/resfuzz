@@ -8,12 +8,22 @@
  *                 [--no-raw] [--max-ops N] [--max-payload N]
  *   resfuzz-agent --target T [--spawn CMD] --replay FILE      (exit 0 ok,10 crash,11 hang,12 deadline)
  *   resfuzz-agent --target T  --spawn CMD  --minimize FILE --min-out FILE
+ *       FILE may be a single test case (RFZ1) or a sequence (RFS1, see rf_testcase.h):
+ *       a sequence is replayed in order against ONE fresh server instance.
  *   resfuzz-agent --decode FILE
  *
  * Output directory layout (consumed by host/resfuzz/triage.py):
  *   out/events.jsonl   one JSON object per finding / lifecycle event
  *   out/stats.json     rolling statistics
  *   out/{crashes,hangs,deadlines,corpus}/NAME.rfz   saved test cases
+ *   out/{crashes,hangs}/NAME.seq    the server's history up to a stateful finding
+ *
+ * Stateful findings: with --spawn the server is restarted every
+ * --respawn-every test cases (default 1000) and after every crash/hang, and
+ * the agent remembers the cases run on the current instance. A finding that
+ * does not reproduce alone on a fresh server is saved together with that
+ * history as a sequence, which --minimize reduces (suffix search, case-level
+ * delta debugging, then flattening into one test case where possible).
  */
 #include <errno.h>
 #include <inttypes.h>
@@ -45,7 +55,7 @@ typedef struct {
     const char *dicts[MAX_DICTS];
     unsigned ndicts;
     unsigned long long iterations, seconds, seed;
-    unsigned deadline_us, hang_ms, max_ops, max_payload;
+    unsigned deadline_us, hang_ms, max_ops, max_payload, respawn_every;
     int cov, no_raw, quiet;
 } opts_t;
 
@@ -66,6 +76,30 @@ static atomic_uint_fast64_t wd_since;     /* 0 = idle, else start time in ns */
 static atomic_int           wd_fired;
 static uint64_t             wd_limit_ns;
 static const rf_tc         *wd_current;   /* test case in flight (for unmanaged hang dumps) */
+
+/* Test cases run on the current server instance (oldest first). */
+#define HIST_MAX 1024u
+static rf_tc    g_hist[HIST_MAX];
+static unsigned g_hn;
+static int      g_hist_overflow;   /* older cases were dropped: a sequence may be incomplete */
+
+static void hist_clear(void)
+{
+    for (unsigned i = 0; i < g_hn; i++) rf_tc_free(&g_hist[i]);
+    g_hn = 0;
+    g_hist_overflow = 0;
+}
+
+static void hist_push(const rf_tc *tc)
+{
+    if (g_hn == HIST_MAX) {                 /* drop the oldest */
+        rf_tc_free(&g_hist[0]);
+        memmove(&g_hist[0], &g_hist[1], (HIST_MAX - 1) * sizeof g_hist[0]);
+        g_hn--;
+        g_hist_overflow = 1;
+    }
+    if (rf_tc_copy(&g_hist[g_hn], tc) == 0) g_hn++;
+}
 
 typedef struct { uint64_t key; unsigned count; } bucket_t;
 static bucket_t g_buckets[MAX_BUCKETS];
@@ -90,6 +124,7 @@ static void usage(void)
             "  --corpus DIR --out DIR --seconds N --iterations N --seed N\n"
             "  --deadline-us N (default 5000, 0=off) --hang-ms N (default 1000)\n"
             "  --no-raw --max-ops N --max-payload N --quiet\n"
+            "  --respawn-every N    restart the server every N cases (default 1000, 0=never; bounds stateful history)\n"
             "  --replay FILE | --minimize FILE --min-out FILE | --decode FILE\n",
             rf_plat_info()->name);
 }
@@ -102,6 +137,7 @@ static int parse_args(int argc, char **argv)
     O.hang_ms = 1000;
     O.max_ops = 16;
     O.max_payload = 1024;
+    O.respawn_every = 1000;
     O.seed = (unsigned long long)time(NULL) ^ ((unsigned long long)getpid() << 16);
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -123,6 +159,7 @@ static int parse_args(int argc, char **argv)
         else if (ARG("--hang-ms")) O.hang_ms = (unsigned)strtoul(v, NULL, 0);
         else if (ARG("--max-ops")) O.max_ops = (unsigned)strtoul(v, NULL, 0);
         else if (ARG("--max-payload")) O.max_payload = (unsigned)strtoul(v, NULL, 0);
+        else if (ARG("--respawn-every")) O.respawn_every = (unsigned)strtoul(v, NULL, 0);
         else if (!strcmp(a, "--cov")) O.cov = 1;
         else if (!strcmp(a, "--no-raw")) O.no_raw = 1;
         else if (!strcmp(a, "--quiet")) O.quiet = 1;
@@ -159,7 +196,7 @@ static void json_str(FILE *f, const char *s)
 }
 
 static void event_finding(const char *type, const rf_tc *tc, const rf_result *r, const char *file, uint64_t key,
-                          int repro)
+                          int repro, const char *seq, int seq_repro, unsigned seq_len)
 {
     if (!g_events) return;
     const rf_op *op = (r->op_index >= 0 && r->op_index < (int)tc->nops) ? &tc->ops[r->op_index] : NULL;
@@ -172,8 +209,15 @@ static void event_finding(const char *type, const rf_tc *tc, const rf_result *r,
     fprintf(g_events, ",\"signal\":%d,\"max_latency_us\":%" PRIu64 ",\"latency_op\":%d,\"file\":",
             r->signal, r->max_latency_ns / 1000u, r->max_latency_op);
     json_str(g_events, file ? file : "");
-    fprintf(g_events, ",\"reproducible\":%s,\"execs\":%llu}\n",
+    fprintf(g_events, ",\"reproducible\":%s,\"execs\":%llu",
             repro < 0 ? "null" : (repro ? "true" : "false"), S.execs);
+    if (seq && seq[0]) {
+        fputs(",\"sequence\":", g_events);
+        json_str(g_events, seq);
+        fprintf(g_events, ",\"sequence_cases\":%u,\"sequence_reproducible\":%s", seq_len,
+                seq_repro < 0 ? "null" : (seq_repro ? "true" : "false"));
+    }
+    fputs("}\n", g_events);
     fflush(g_events);
 }
 
@@ -346,6 +390,7 @@ static uint64_t bucket_key(rf_result_kind kind, const rf_tc *tc, const rf_result
 }
 
 static rf_result_kind run_one(const rf_tc *tc, rf_result *r);
+static rf_result_kind run_seq(const rf_tc *const *cases, unsigned n, rf_result *r);
 
 /* Servers keep state across test cases, so a finding may depend on what ran
  * before. With --spawn, crashes/hangs have just restarted the server: replay
@@ -363,17 +408,36 @@ static void record_finding(rf_result_kind kind, const rf_tc *tc, const rf_result
                  rf_result_name(kind), key, b->count);
         if (rf_tc_save(tc, path) != 0) path[0] = '\0';
     }
-    int repro = -1;
+    int repro = -1, seq_repro = -1;
+    char seq[1100] = "";
+    unsigned seq_len = 0;
     if (path[0] && O.spawn && !O.replay && !O.minimize) {
+        /* g_hist still holds the cases run on the instance that failed. */
+        static const rf_tc *hv[HIST_MAX + 1];
+        unsigned hn = g_hn;
+        for (unsigned i = 0; i < hn; i++) hv[i] = &g_hist[i];
+        hv[hn] = tc;
         rf_result r2;
         repro = run_one(tc, &r2) == kind;
+        if (!repro && hn > 0 && kind != RF_RES_DEADLINE) {
+            snprintf(seq, sizeof seq, "%s/%s/%s_%016" PRIx64 "_%u.seq", O.out_dir, dirs[kind],
+                     rf_result_name(kind), key, b->count);
+            if (rf_seq_save(hv, hn + 1, seq) == 0) {
+                seq_len = hn + 1;
+                seq_repro = run_seq(hv, hn + 1, &r2) == kind;
+            } else {
+                seq[0] = '\0';
+            }
+        }
     }
     if (b) b->count++;
-    if (!b || b->count <= SAVE_PER_BUCKET) event_finding(rf_result_name(kind), tc, r, path, key, repro);
+    if (!b || b->count <= SAVE_PER_BUCKET)
+        event_finding(rf_result_name(kind), tc, r, path, key, repro, seq, seq_repro, seq_len);
     if (!O.quiet && path[0]) {
         fprintf(stderr, "[!] %s at op #%d (%s) -> %s%s\n", rf_result_name(kind), r->op_index,
                 r->err ? strerror(r->err) : "-", path,
-                repro == 0 ? " [did not reproduce on a fresh server: stateful]" : "");
+                repro == 0 ? (seq_repro == 1 ? " [stateful: reproduces as a sequence]"
+                                             : " [did not reproduce on a fresh server: stateful]") : "");
     }
 }
 
@@ -398,6 +462,22 @@ static rf_result_kind run_one(const rf_tc *tc, rf_result *r)
     return r->kind;
 }
 
+/* Replay cases in order on ONE fresh server instance. Stops at the first
+ * non-OK result; *r and the return value describe that case (or the last). */
+static rf_result_kind run_seq(const rf_tc *const *cases, unsigned n, rf_result *r)
+{
+    if (O.spawn && restart_target(0, 0) != 0) { memset(r, 0, sizeof *r); return RF_RES_SETUP_FAIL; }
+    rf_result_kind k = RF_RES_OK;
+    for (unsigned i = 0; i < n; i++) {
+        k = run_one(cases[i], r);
+        if (k != RF_RES_OK && k != RF_RES_DEADLINE) {
+            if (i + 1 < n) return RF_RES_SETUP_FAIL;   /* failed early: not the same finding */
+            return k;
+        }
+    }
+    return k;
+}
+
 /* ---------------- modes ---------------- */
 static int mode_decode(void)
 {
@@ -409,8 +489,43 @@ static int mode_decode(void)
     return 0;
 }
 
+static int exit_code(rf_result_kind k)
+{
+    switch (k) {
+    case RF_RES_CRASH: return 10;
+    case RF_RES_HANG: return 11;
+    case RF_RES_DEADLINE: return 12;
+    case RF_RES_SETUP_FAIL: return 2;
+    default: return 0;
+    }
+}
+
+static int load_seq_ptrs(const char *path, rf_tc **cases, unsigned *n, const rf_tc ***ptrs)
+{
+    if (rf_seq_load(cases, n, path) != 0) return -1;
+    *ptrs = malloc(*n * sizeof **ptrs);
+    if (!*ptrs) { rf_seq_free(*cases, *n); return -1; }
+    for (unsigned i = 0; i < *n; i++) (*ptrs)[i] = &(*cases)[i];
+    return 0;
+}
+
+static int mode_replay_seq(void)
+{
+    rf_tc *cases; unsigned n; const rf_tc **v;
+    if (load_seq_ptrs(O.replay, &cases, &n, &v) != 0) { fprintf(stderr, "cannot parse %s\n", O.replay); return 2; }
+    rf_result r;
+    rf_result_kind k = run_seq(v, n, &r);
+    printf("{\"result\":\"%s\",\"sequence_cases\":%u,\"op_index\":%d,\"errno\":%d,\"signal\":%d,"
+           "\"max_latency_us\":%" PRIu64 "}\n", rf_result_name(k), n, r.op_index, r.err, r.signal,
+           r.max_latency_ns / 1000u);
+    free(v);
+    rf_seq_free(cases, n);
+    return exit_code(k);
+}
+
 static int mode_replay(void)
 {
+    if (rf_file_is_seq(O.replay)) return mode_replay_seq();
     rf_tc tc;
     if (rf_tc_load(&tc, O.replay) != 0) { fprintf(stderr, "cannot parse %s\n", O.replay); return 2; }
     rf_result r;
@@ -419,13 +534,7 @@ static int mode_replay(void)
            ",\"latency_op\":%d}\n",
            rf_result_name(r.kind), r.op_index, r.err, r.signal, r.max_latency_ns / 1000u, r.max_latency_op);
     rf_tc_free(&tc);
-    switch (r.kind) {
-    case RF_RES_CRASH: return 10;
-    case RF_RES_HANG: return 11;
-    case RF_RES_DEADLINE: return 12;
-    case RF_RES_SETUP_FAIL: return 2;
-    default: return 0;
-    }
+    return exit_code(r.kind);
 }
 
 static rf_result_kind g_min_want;
@@ -439,8 +548,96 @@ static int min_pred(const rf_tc *cand, void *ctx)
     return run_one(cand, &r) == g_min_want;
 }
 
+static rf_result_kind g_seq_want;
+static unsigned       g_seq_attempts;
+static int seq_pred(const rf_tc *const *v, unsigned n)
+{
+    rf_result r;
+    g_seq_attempts++;
+    return run_seq(v, n, &r) == g_seq_want;
+}
+
+/*
+ * Minimise a sequence: (1) shortest history suffix that still reproduces
+ * (binary search; state is usually set shortly before the failure),
+ * (2) delta debugging over whole cases, (3) flatten into one test case and,
+ * if that still reproduces on a fresh server, minimise it op by op. The
+ * failing case is always kept last.
+ */
+static int mode_minimize_seq(void)
+{
+    rf_tc *cases; unsigned n; const rf_tc **v;
+    if (load_seq_ptrs(O.minimize, &cases, &n, &v) != 0) { fprintf(stderr, "cannot parse %s\n", O.minimize); return 2; }
+    rf_result r;
+    g_seq_want = run_seq(v, n, &r);
+    if (g_seq_want == RF_RES_OK || g_seq_want == RF_RES_SETUP_FAIL || g_seq_want == RF_RES_DEADLINE) {
+        fprintf(stderr, "resfuzz-agent: sequence %s does not reproduce (%s)\n", O.minimize, rf_result_name(g_seq_want));
+        free(v); rf_seq_free(cases, n);
+        return 1;
+    }
+    unsigned n0 = n;
+    /* (1) suffix: keep k history cases before the last one */
+    unsigned lo = 0, hi = n - 1;
+    while (lo < hi) {
+        unsigned mid = (lo + hi) / 2;
+        if (seq_pred(v + (n - 1 - mid), mid + 1)) hi = mid; else lo = mid + 1;
+    }
+    const rf_tc **w = v + (n - 1 - lo);
+    unsigned m = lo + 1;
+    if (m < n && !seq_pred(w, m)) { w = v; m = n; }     /* not monotonic: keep everything */
+    /* (2) remove chunks of history cases (never the last case) */
+    const rf_tc **cand = malloc(m * sizeof *cand);
+    for (unsigned chunk = (m - 1) / 2 ? (m - 1) / 2 : 1; m > 1 && cand; chunk /= 2) {
+        for (unsigned start = 0; start + 1 < m;) {
+            unsigned cut = RF_MIN(chunk, m - 1 - start), c = 0;
+            for (unsigned i = 0; i < m; i++) if (i < start || i >= start + cut) cand[c++] = w[i];
+            if (seq_pred(cand, c)) { memcpy((void *)w, cand, c * sizeof *cand); m = c; }
+            else start += cut;
+        }
+        if (chunk == 1) break;
+    }
+    free(cand);
+    int rc = 2;
+    const char *form = "sequence";
+    unsigned ops_after = 0;
+    /* (3) flatten */
+    rf_tc flat;
+    rf_tc *mc = calloc(m, sizeof *mc);
+    for (unsigned i = 0; mc && i < m; i++) rf_tc_copy(&mc[i], w[i]);
+    int flat_ok = mc && rf_seq_flatten(&flat, mc, m) == 0;
+    if (flat_ok) {
+        g_min_want = g_seq_want;
+        rf_min_stats st = { 0, 0, 2000 };
+        if (min_pred(&flat, NULL)) {
+            rf_minimize(&flat, min_pred, NULL, &st);
+            rc = rf_tc_save(&flat, O.min_out) == 0 ? 0 : 2;
+            form = "testcase";
+            ops_after = flat.nops;
+            g_seq_attempts += st.attempts;
+        }
+        rf_tc_free(&flat);
+    }
+    if (rc != 0) {
+        rc = rf_seq_save(w, m, O.min_out) == 0 ? 0 : 2;
+        for (unsigned i = 0; i < m; i++) ops_after += w[i]->nops;
+    }
+    printf("{\"result\":\"%s\",\"input\":\"sequence\",\"cases_before\":%u,\"cases_after\":%u,"
+           "\"output\":\"%s\",\"ops_after\":%u,\"attempts\":%u}\n",
+           rf_result_name(g_seq_want), n0, m, form, ops_after, g_seq_attempts);
+    if (!strcmp(form, "testcase")) {
+        rf_tc out;
+        if (rf_tc_load(&out, O.min_out) == 0) { rf_tc_dump(&out, stdout); rf_tc_free(&out); }
+    } else {
+        for (unsigned i = 0; i < m; i++) { printf("-- case %u\n", i); rf_tc_dump(w[i], stdout); }
+    }
+    if (mc) rf_seq_free(mc, m);
+    free(v); rf_seq_free(cases, n);
+    return rc;
+}
+
 static int mode_minimize(void)
 {
+    if (rf_file_is_seq(O.minimize)) return mode_minimize_seq();
     rf_tc tc;
     if (rf_tc_load(&tc, O.minimize) != 0) { fprintf(stderr, "cannot parse %s\n", O.minimize); return 2; }
     rf_result r;
@@ -487,14 +684,17 @@ static int mode_fuzz(rf_dict *dict)
         for (unsigned i = 0; i < ns; i++) { rf_corpus_add(&corpus, &seeds[i], 0, 0); rf_tc_free(&seeds[i]); }
     }
     /* Dry run of the initial corpus establishes baseline coverage. */
+    hist_clear();
     for (unsigned i = 0; i < corpus.n && !g_stop; i++) {
         rf_result r;
+        unsigned long long resp0 = S.respawns;
         rf_result_kind k = run_one(&corpus.e[i].tc, &r);
         if (g_have_cov) { rf_cov_has_new(&g_cov); harvest_cmplog(dict); }
         sig_feedback(&r);
         if (k != RF_RES_OK && k != RF_RES_SETUP_FAIL) record_finding(k, &corpus.e[i].tc, &r);
         if (k == RF_RES_CRASH) S.crashes++;
         if (k == RF_RES_SETUP_FAIL) { S.setup_fail++; }
+        if (S.respawns != resp0) hist_clear(); else hist_push(&corpus.e[i].tc);
     }
     if (S.setup_fail && S.setup_fail == corpus.n) {
         fprintf(stderr, "resfuzz-agent: cannot open %s\n", O.target);
@@ -509,6 +709,12 @@ static int mode_fuzz(rf_dict *dict)
     while (!g_stop) {
         if (O.iterations && S.execs >= O.iterations) break;
         if (deadline_end && rf_plat_now_ns() >= deadline_end) break;
+        if (O.spawn && O.respawn_every && g_hn >= O.respawn_every) {
+            /* bound the state a finding can depend on (and the sequence length) */
+            if (restart_target(0, 0) != 0) { event_simple("fatal", "target restart failed"); break; }
+            hist_clear();
+        }
+        unsigned long long resp0 = S.respawns;
 
         rf_corpus_entry *e = rf_corpus_pick(&corpus, &rng);
         if (!e || rf_tc_copy(&cur, &e->tc) != 0) break;
@@ -538,6 +744,7 @@ static int mode_fuzz(rf_dict *dict)
                 if (sig_new) S.new_sig++;
             }
         }
+        if (S.respawns != resp0) hist_clear(); else hist_push(&cur);
         rf_tc_free(&cur);
 
         uint64_t now = rf_plat_now_ns();
@@ -554,6 +761,7 @@ static int mode_fuzz(rf_dict *dict)
     }
     write_stats();
     event_simple("done", "");
+    hist_clear();
     rf_corpus_free(&corpus);
     return 0;
 }

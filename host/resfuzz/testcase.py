@@ -98,3 +98,73 @@ class TestCase:
 
     def describe(self) -> str:
         return "\n".join(f"#{i:<3} {op.describe()}" for i, op in enumerate(self.ops))
+
+
+SEQ_MAGIC = b"RFS1"
+SEQ_MAX = 4096
+
+
+@dataclass
+class Sequence:
+    """RFS1: the test cases one server instance ran, in order, ending with the
+    failing one (target/include/rf_testcase.h). Replayed as a whole against a
+    fresh server, this reproduces findings that depend on server state."""
+    __test__ = False
+    cases: list[TestCase] = field(default_factory=list)
+
+    def serialize(self) -> bytes:
+        if not self.cases or len(self.cases) > SEQ_MAX:
+            raise FormatError("bad case count")
+        out = [SEQ_MAGIC, struct.pack("<I", len(self.cases))]
+        for tc in self.cases:
+            b = tc.serialize()
+            out += [struct.pack("<I", len(b)), b]
+        return b"".join(out)
+
+    @classmethod
+    def parse(cls, buf: bytes) -> "Sequence":
+        if len(buf) < 8 or buf[:4] != SEQ_MAGIC:
+            raise FormatError("bad sequence magic")
+        (n,) = struct.unpack_from("<I", buf, 4)
+        if n == 0 or n > SEQ_MAX:
+            raise FormatError("bad case count")
+        off, cases = 8, []
+        for _ in range(n):
+            if len(buf) - off < 4:
+                raise FormatError("truncated sequence")
+            (sz,) = struct.unpack_from("<I", buf, off)
+            off += 4
+            if sz > len(buf) - off:
+                raise FormatError("truncated case")
+            cases.append(TestCase.parse(buf[off:off + sz]))
+            off += sz
+        if off != len(buf):
+            raise FormatError("trailing bytes")
+        return cls(cases)
+
+    @classmethod
+    def load(cls, path) -> "Sequence":
+        with open(path, "rb") as f:
+            return cls.parse(f.read())
+
+    def save(self, path) -> None:
+        with open(path, "wb") as f:
+            f.write(self.serialize())
+
+    @property
+    def ops(self) -> list[Op]:
+        return [op for tc in self.cases for op in tc.ops]
+
+    def describe(self, tail: int = 3) -> str:
+        n = len(self.cases)
+        parts = [f"sequence of {n} test cases (one server instance); last {min(tail, n)}:"]
+        for i in range(max(0, n - tail), n):
+            parts.append(f"-- case {i}" + (" (fails)" if i == n - 1 else ""))
+            parts.append(self.cases[i].describe())
+        return "\n".join(parts)
+
+
+def load_any(path) -> "TestCase | Sequence":
+    with open(path, "rb") as f:
+        buf = f.read()
+    return Sequence.parse(buf) if buf[:4] == SEQ_MAGIC else TestCase.parse(buf)

@@ -18,8 +18,12 @@
  * If $RESFUZZ_SHM is unset or the shm cannot be mapped, hits go to a private
  * dummy map, so an instrumented server still runs normally outside resfuzz.
  */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1          /* dladdr() on glibc */
+#endif
 #include "rf_cov.h"
 
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -28,9 +32,17 @@
 static rf_cov_shm  rf_dummy;
 static rf_cov_shm *rf_shm = &rf_dummy;
 static __thread uintptr_t rf_prev;
+/* Load address of the instrumented executable. qcc links PIE by default and
+ * QNX 8.0 randomises the load address on every spawn (checked on the QEMU
+ * target: main at 0x2f46d7d6e0, 0x5e131eb6e0, 0x469684b6e0 in three runs), so
+ * hashing absolute return addresses gave every respawned server a fresh set
+ * of "new" edges. Edges are hashed from module-relative offsets instead. */
+static uintptr_t rf_base;
 
 __attribute__((constructor)) static void rf_cov_rt_init(void)
 {
+    Dl_info di;
+    if (dladdr((void *)&rf_cov_rt_init, &di) && di.dli_fbase) rf_base = (uintptr_t)di.dli_fbase;
     const char *name = getenv("RESFUZZ_SHM");
     if (!name || !*name) return;
     int fd = shm_open(name, O_RDWR, 0);
@@ -49,7 +61,7 @@ static inline uintptr_t rf_hash_pc(uintptr_t pc)
 
 void __sanitizer_cov_trace_pc(void)
 {
-    uintptr_t cur = rf_hash_pc((uintptr_t)__builtin_return_address(0)) & (RF_MAP_SIZE - 1);
+    uintptr_t cur = rf_hash_pc((uintptr_t)__builtin_return_address(0) - rf_base) & (RF_MAP_SIZE - 1);
     uint8_t *slot = &rf_shm->map[(cur ^ rf_prev) & (RF_MAP_SIZE - 1)];
     if (*slot != 0xff) (*slot)++;          /* saturating, avoids wrap to "unseen" */
     rf_prev = cur >> 1;

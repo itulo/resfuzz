@@ -531,6 +531,51 @@ static void test_exec_mock(void)
 }
 
 /* ---------------------------------------------------------------- main */
+/* ---------------------------------------------------------------- sequences (RFS1) */
+static void test_sequence(void)
+{
+    rf_tc a, b;
+    make_sample(&a);
+    rf_tc_init(&b);
+    rf_tc_append(&b, RF_OP_DEVCTL, 0, 0x1234, 8, "ADMN\2\0\0\0", 8);
+    const rf_tc *v[3] = { &a, &b, &a };
+    char path[400];
+    snprintf(path, sizeof path, "%s/s.seq", tmpdir);
+    CHECK_EQ(rf_seq_save(v, 3, path), 0);
+    CHECK(rf_file_is_seq(path));
+    rf_tc *cases; unsigned n;
+    CHECK_EQ(rf_seq_load(&cases, &n, path), 0);
+    CHECK_EQ(n, 3);
+    CHECK(rf_tc_hash(&cases[0]) == rf_tc_hash(&a) && rf_tc_hash(&cases[1]) == rf_tc_hash(&b));
+    rf_tc flat;
+    CHECK_EQ(rf_seq_flatten(&flat, cases, n), 0);
+    CHECK_EQ(flat.nops, a.nops * 2 + b.nops);
+    CHECK_EQ(flat.ops[a.nops].a, 0x1234);
+    rf_tc_free(&flat);
+    rf_seq_free(cases, n);
+    /* a single test case file is not a sequence; truncated sequences are rejected */
+    snprintf(path, sizeof path, "%s/one.rfz", tmpdir);
+    rf_tc_save(&a, path);
+    CHECK(!rf_file_is_seq(path));
+    CHECK(rf_seq_load(&cases, &n, path) != 0);
+    uint8_t *buf; size_t len;
+    snprintf(path, sizeof path, "%s/s.seq", tmpdir);
+    CHECK_EQ(rf_read_file(path, &buf, &len, 1 << 20), 0);
+    for (size_t cut = 0; cut < len; cut += 7) {
+        char p2[420];
+        snprintf(p2, sizeof p2, "%s/cut.seq", tmpdir);
+        rf_write_file(p2, buf, cut);
+        CHECK(rf_seq_load(&cases, &n, p2) != 0);
+    }
+    free(buf);
+    /* flattening refuses to exceed RF_MAX_OPS */
+    rf_tc big; rf_tc_init(&big);
+    for (unsigned i = 0; i < RF_MAX_OPS; i++) rf_tc_append(&big, RF_OP_READ, 0, 1, 0, NULL, 0);
+    rf_tc two[2] = { big, big };
+    CHECK(rf_seq_flatten(&flat, two, 2) != 0);
+    rf_tc_free(&big); rf_tc_free(&a); rf_tc_free(&b);
+}
+
 int main(void)
 {
     snprintf(tmpdir, sizeof tmpdir, "/tmp/resfuzz_ut_%d", (int)getpid());
@@ -540,6 +585,7 @@ int main(void)
         { "rng", test_rng },
         { "testcase_roundtrip", test_testcase_roundtrip },
         { "testcase_parser_fuzz", test_testcase_parser_fuzz },
+        { "sequence", test_sequence },
         { "dict", test_dict },
         { "mutate_invariants", test_mutate_invariants },
         { "corpus", test_corpus },

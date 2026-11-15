@@ -190,3 +190,82 @@ int rf_tc_load(rf_tc *tc, const char *path)
     free(buf);
     return rc;
 }
+
+/* ---------------- sequences (RFS1) ---------------- */
+int rf_seq_save(const rf_tc *const *cases, unsigned n, const char *path)
+{
+    size_t total = 8;
+    for (unsigned i = 0; i < n; i++) total += 4 + rf_tc_serialized_size(cases[i]);
+    uint8_t *buf = malloc(total);
+    if (!buf) return -1;
+    memcpy(buf, RF_SEQ_MAGIC, 4);
+    rf_put_u32(buf + 4, n);
+    size_t off = 8;
+    for (unsigned i = 0; i < n; i++) {
+        size_t sz = rf_tc_serialized_size(cases[i]);
+        rf_put_u32(buf + off, (uint32_t)sz);
+        if (rf_tc_serialize(cases[i], buf + off + 4, sz) != sz) { free(buf); return -1; }
+        off += 4 + sz;
+    }
+    int rc = rf_write_file(path, buf, off);
+    free(buf);
+    return rc;
+}
+
+void rf_seq_free(rf_tc *cases, unsigned n)
+{
+    if (!cases) return;
+    for (unsigned i = 0; i < n; i++) rf_tc_free(&cases[i]);
+    free(cases);
+}
+
+int rf_seq_load(rf_tc **cases, unsigned *n, const char *path)
+{
+    uint8_t *buf;
+    size_t len;
+    *cases = NULL; *n = 0;
+    if (rf_read_file(path, &buf, &len, 64u * 1024u * 1024u) != 0) return -1;
+    if (len < 8 || memcmp(buf, RF_SEQ_MAGIC, 4) != 0) { free(buf); return -1; }
+    uint32_t cnt = rf_get_u32(buf + 4);
+    if (cnt == 0 || cnt > RF_SEQ_MAX) { free(buf); return -1; }
+    rf_tc *v = calloc(cnt, sizeof *v);
+    if (!v) { free(buf); return -1; }
+    size_t off = 8;
+    unsigned i = 0;
+    for (; i < cnt; i++) {
+        rf_tc_init(&v[i]);
+        if (len - off < 4) break;
+        uint32_t sz = rf_get_u32(buf + off);
+        off += 4;
+        if (sz > len - off || rf_tc_parse(&v[i], buf + off, sz) != 0) break;
+        off += sz;
+    }
+    free(buf);
+    if (i != cnt || off != len) { rf_seq_free(v, i + (i < cnt)); return -1; }
+    *cases = v; *n = cnt;
+    return 0;
+}
+
+int rf_file_is_seq(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) return 0;
+    char m[4];
+    int is = fread(m, 1, 4, f) == 4 && memcmp(m, RF_SEQ_MAGIC, 4) == 0;
+    fclose(f);
+    return is;
+}
+
+int rf_seq_flatten(rf_tc *dst, const rf_tc *cases, unsigned n)
+{
+    rf_tc_init(dst);
+    for (unsigned i = 0; i < n; i++)
+        for (unsigned j = 0; j < cases[i].nops; j++) {
+            const rf_op *op = &cases[i].ops[j];
+            if (rf_tc_append(dst, op->kind, op->flags, op->a, op->b, op->data, op->len) < 0) {
+                rf_tc_free(dst);
+                return -1;
+            }
+        }
+    return 0;
+}

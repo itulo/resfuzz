@@ -25,6 +25,22 @@ if [[ -r /dev/kvm && -w /dev/kvm ]]; then
     exit 1
 fi
 
+# Host packages (Debian/Ubuntu names) and the setuid bridge helper QEMU uses.
+need=()
+for c in qemu-system-x86_64:qemu-system-x86 qemu-img:qemu-utils brctl:bridge-utils dnsmasq:dnsmasq-base ping:iputils-ping; do
+    command -v "${c%%:*}" >/dev/null 2>&1 || [[ -x /usr/sbin/${c%%:*} ]] || need+=("${c#*:}")
+done
+if ((${#need[@]})); then
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${need[@]}"
+fi
+helper=/usr/lib/qemu/qemu-bridge-helper
+[[ -u $helper ]] || sudo chmod u+s "$helper"
+# mkqnximage --getip pings the arp candidates: ping needs CAP_NET_RAW.
+if ! ping -nc 1 -W 1 127.0.0.1 >/dev/null 2>&1; then
+    sudo setcap cap_net_raw+p "$(command -v ping)" 2>/dev/null || sudo chmod u+s "$(command -v ping)"
+fi
+export PATH=$PATH:/usr/sbin:/sbin
+
 # Bridge + DHCP for mkqnximage's QEMU networking (same call runimage makes).
 if ! ip link show br0 >/dev/null 2>&1 || ! pgrep -f 'dnsmasq --interface=br0' >/dev/null; then
     sudo bash "$QNX_HOST/../../common/mkqnximage/qemu/net.sh" \

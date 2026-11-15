@@ -2,10 +2,10 @@
 
 **Fuzz QNX 8.0 resource managers through message passing, from a Linux host.**
 
-> Status: work in progress for the QNX Global Hackathon (Developer Tooling & Host Tools).
-> Everything runs on Linux today against a mock server. The QNX target side is
-> written but has **not been compiled or run yet**, because the QNX SDP 8.0 isn't installed.
-> [docs/TODO-QNX.md](docs/TODO-QNX.md) lists every QNX-specific assumption that still needs checking.
+> Status: entry for the QNX Global Hackathon (Developer Tooling & Host Tools).
+> Built with QNX SDP 8.0 (`qcc`, gcc 12.2.0) and run on a `mkqnximage` QEMU x86_64 target from a Linux host.
+> Every QNX-specific assumption and how it was checked on the target is in [docs/TODO-QNX.md](docs/TODO-QNX.md);
+> the submission status is in [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md).
 
 In QNX, drivers and services are *resource managers*: user-space servers that
 clients reach through `open()`, `read()`, `write()` and `devctl()`, all carried
@@ -22,8 +22,10 @@ supposed to be real-time. resfuzz sends those messages for you, automatically an
 - **Coverage-guided** when the server is built with `-fsanitize-coverage`, and
   **blind** (driven by reply signatures) otherwise. Compare operands (cmplog)
   feed magic values and devctl codes back into the mutator.
-- **Reproducible findings.** Every finding is replayed on a freshly restarted server and marked
-  reproducible or stateful. Crashes and hangs are delta-minimised, again on a fresh server for each attempt.
+- **Reproducible findings, including stateful ones.** Every finding is replayed on a freshly restarted server.
+  If it only fails after earlier messages, the server's history is saved as a sequence (RFS1) and replayed as a
+  whole; minimisation shrinks the history and flattens it into one short test case where possible.
+  Crashes and hangs are delta-minimised, on a fresh server for each attempt.
 - **Host orchestrator** (`resfuzz` Python CLI):
   - builds and boots a QEMU image with `mkqnximage`, deploys over ssh, runs the campaign;
   - fetches findings and cores, gets gdb backtraces, and writes a Markdown and HTML report.

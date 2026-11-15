@@ -183,6 +183,14 @@ static int mut_payload_bytes(rf_mutator *m, rf_tc *tc, rf_mut_kind kind)
         uint64_t v = size == 1 ? (uint8_t)interesting8[pick_u32(m, RF_ARRAY_LEN(interesting8))]
                    : size == 2 ? (uint16_t)interesting16[pick_u32(m, RF_ARRAY_LEN(interesting16))]
                                : (uint32_t)interesting32[pick_u32(m, RF_ARRAY_LEN(interesting32))];
+        if (size == 4 && rf_rng_one_in(m->rng, 2)) {
+            /* devctl payloads are C structs: put enum/level/index-like small
+             * values (0..8) into a naturally aligned u32 field. */
+            pos = 4 * pick_u32(m, op->len / 4);
+            v = pick_u32(m, 9);
+            store_le(op->data + pos, v, 4, 0);
+            return 0;
+        }
         store_le(op->data + pos, v, size, rf_rng_one_in(m->rng, 2));
         return 0;
     }
@@ -250,6 +258,10 @@ static int mut_dict_token(rf_mutator *m, rf_tc *tc)
     rf_op *op = &tc->ops[oi];
     if (rf_rng_one_in(m->rng, 2) && op->len >= t->len) {      /* overwrite */
         uint32_t pos = pick_u32(m, op->len - t->len + 1);
+        /* Struct fields are naturally aligned: prefer 4-byte-aligned offsets
+         * for word-sized tokens (magics, dcmd constants) 3 times out of 4. */
+        if (t->len >= 4 && !rf_rng_one_in(m->rng, 4))
+            pos = 4 * pick_u32(m, (op->len - t->len) / 4 + 1);
         memcpy(op->data + pos, t->bytes, t->len);
         return 0;
     }

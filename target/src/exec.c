@@ -61,7 +61,7 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
     memset(res, 0, sizeof *res);
     res->op_index = -1;
     res->max_latency_op = -1;
-    int deadline_op = -1, ever_opened = 0;
+    int deadline_op = -1, ever_opened = 0, child_reaped = 0, child_st = 0;
     uint64_t cps = rf_plat_cycles_per_sec();
     uint64_t start = rf_plat_now_ns();
 
@@ -149,6 +149,19 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
              (op->kind == RF_OP_WRITE && omode[op->flags & (RF_MAX_SLOTS - 1)] == 0));
         if (r < 0 && rf_err_means_server_gone((int)-r) && !wrong_dir &&
             !(op->kind == RF_OP_CLOSE && r == -EBADF)) {
+            /* A live server can also *reply* EBADF/ESRCH itself, e.g. QNX 8.0's
+             * resmgr layer answers a raw _IO_OPENFD (0x10d) carrying a garbage
+             * handle with EBADF (seen in qnx-run4). When we own the server's pid,
+             * only call it a crash if the process really went away. */
+            if (cfg->target_pid > 0) {
+                int polled = rf_plat_poll_child(cfg->target_pid, &child_st);
+                for (int w = 0; polled == 0 && w < 40; w++) {
+                    usleep(5000);
+                    polled = rf_plat_poll_child(cfg->target_pid, &child_st);
+                }
+                if (polled == 0) { res->ops_err++; continue; }   /* still alive: an ordinary error */
+                child_reaped = polled == 1;
+            }
             res->kind = RF_RES_CRASH;
             res->op_index = (int)i;
             res->err = (int)-r;
@@ -168,9 +181,9 @@ done:
     for (unsigned s = 0; s < RF_MAX_SLOTS; s++)
         if (conns[s].open) rf_plat_close(&conns[s]);
     if (cfg->target_pid > 0) {
-        int st = 0;
+        int st = child_st;
         /* A server killed by a signal is a crash even if every reply arrived. */
-        int polled = rf_plat_poll_child(cfg->target_pid, &st);
+        int polled = child_reaped ? 1 : rf_plat_poll_child(cfg->target_pid, &st);
         /* After a "server gone" error the child may still be exiting: give it
          * up to ~200 ms so its signal is attributed to this test case. */
         for (int w = 0; polled == 0 && res->kind == RF_RES_CRASH && w < 40; w++) {

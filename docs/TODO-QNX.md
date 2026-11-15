@@ -134,6 +134,10 @@ Helper programs used: `target/tests/qnx/qnx_checks.c`, `target/tests/qnx/devctl_
   server produced a fresh set of "new edges" (run1 had 114 respawns, run3 13). **Fixed:** cov_rt hashes the offset
   from the executable's load base (`dladdr()`); a 90 s QNX run now reports 106 edges with 25 respawns, the same order
   as the Linux mock (117 edges, 203 respawns). The inflated counts also polluted the corpus with no-op entries.
+- [x] **F5** A live server can itself reply EBADF: QNX 8.0 answers a raw `_IO_OPENFD` (type 0x10d, 48 bytes, garbage handle)
+  with EBADF while buggy_rm stays in `MsgReceive` (qnx-run4 false-positive crash). `rf_exec` now confirms with
+  `waitpid` (up to 200 ms) that a spawned server really died before reporting ESRCH/EBADF as a crash, and the host
+  only attributes a core when the replay itself crashed or hung. run5: 0 false positives.
 - [x] **F1** read() on an O_WRONLY fd and write() on an O_RDONLY fd return EBADF from iofunc. The agent treated
   EBADF as "server gone" and reported these as signal-0 crashes. **Fixed:** exec.c tracks each slot's open mode and treats
   that EBADF as an ordinary error. Linux `make test` still passes.

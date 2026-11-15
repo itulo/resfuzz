@@ -1,0 +1,2 @@
+QNX drivers and services are resource managers, reached by
+MsgSend. resfuzz attacks that interface on the real OS.

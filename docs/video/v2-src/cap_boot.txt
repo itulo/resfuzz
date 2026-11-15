@@ -1,0 +1,2 @@
+One script builds a mkqnximage QEMU target with the agent
+baked in and boots it headless under TCG (no KVM).

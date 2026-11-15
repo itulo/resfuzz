@@ -1,0 +1,4 @@
+{"version": 2, "width": 72, "height": 15, "timestamp": 1794738299, "env": {"SHELL": null, "TERM": "dumb"}}
+[0.012291, "o", "\u001b[1;32m$\u001b[0m scripts/qnx-up.sh       # SDP 8.0 · mkqnximage · QEMU TCG, no KVM\r\n"]
+[13.269632, "o", "QNX noname 8.0.0 2026/06/05-16:26:03EDT x86pc x86_64\r\nqnx-up: target up at 172.31.1.156\r\n"]
+[13.270826, "o", "  (booted in 13 s)\r\n"]

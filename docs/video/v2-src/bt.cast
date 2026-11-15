@@ -1,0 +1,3 @@
+{"version": 2, "width": 72, "height": 15, "timestamp": 1794738288, "env": {"SHELL": null, "TERM": "dumb"}}
+[0.008422, "o", "\u001b[1;32m$\u001b[0m ntox86_64-gdb buggy_rm buggy_rm.core -batch -ex bt   # run5\r\n"]
+[0.61206, "o", "#0  buggy_devctl at buggy_logic.c:112\r\n#1  io_devctl at buggy_rm.c:108\r\n#2  io_devctl at buggy_rm.c:75\r\n#3  _resmgr_invoke_handler at libc/resmgr/_resmgr_io_handler.c:68\r\n#4  _resmgr_io_handler at libc/resmgr/_resmgr_io_handler.c:308\r\n#5  _resmgr_handler at libc/resmgr/_resmgr_handler.c:198\r\n#6  _resmgr_msg_handler at libc/dispatch/resmgr.c:311\r\n#7  main at buggy_rm.c:154\r\n"]

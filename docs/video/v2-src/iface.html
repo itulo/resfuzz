@@ -1,0 +1,6 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;width:1920px;height:1080px;background:#0d1117;color:#e6edf3;font-family:"DejaVu Sans",system-ui,sans-serif}
+.w{padding:140px 160px}h1{font-size:88px;margin:0 0 30px;color:#7ee787}h2{font-size:56px;margin:0 0 40px;color:#79c0ff}
+p,li{font-size:40px;line-height:1.5;color:#c9d1d9}code{font-family:"DejaVu Sans Mono",monospace;color:#ffa657}
+.box{display:inline-block;border:3px solid #30363d;border-radius:18px;padding:26px 40px;margin:10px 18px;font-size:42px}
+.arrow{font-size:60px;color:#8b949e}.small{font-size:30px;color:#8b949e}table{border-collapse:collapse;font-size:38px}
+td{padding:10px 30px;border-bottom:1px solid #30363d}</style><div class=w><h2>The interface under test</h2><div style="margin:60px 0"><span class=box>client<br><code>open / devctl</code></span><span class=arrow>→ MsgSend →</span><span class=box>resource manager<br><code>io_devctl()</code></span></div><p>Three oracles, measured on the target:</p><ul><li><b>crash</b> — server gone (ESRCH) + <code>waitpid</code> + dumper core</li><li><b>hang</b> — <code>TimerTimeout</code> + watchdog</li><li><b>deadline</b> — <code>ClockCycles()</code> latency over budget</li></ul></div>

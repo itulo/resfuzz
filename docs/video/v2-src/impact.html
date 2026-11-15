@@ -1,0 +1,15 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;width:1920px;height:1080px;background:#0d1117;color:#e6edf3;font-family:"DejaVu Sans",system-ui,sans-serif}
+.w{padding:50px 110px}h2{font-size:62px;margin:0 0 34px;color:#79c0ff}p,li{font-size:38px;line-height:1.45;color:#c9d1d9}
+code,pre{font-family:"DejaVu Sans Mono",monospace}code{color:#ffa657}b{color:#7ee787}
+pre{font-size:31px;line-height:1.38;background:#161b22;border:2px solid #30363d;border-radius:14px;padding:22px 30px;margin:0 0 26px;color:#e6edf3}
+.k{color:#ff7b72}.c{color:#8b949e}.hl{background:#3d2a00;outline:3px solid #ff9f1c}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:28px}.card{border:2px solid #30363d;border-radius:14px;padding:22px 30px}
+.card h3{font-size:38px;margin:0 0 10px;color:#ffa657}.card p{font-size:32px;margin:0}</style><div class=w><style>.card h3{font-size:42px}.card p{font-size:36px}</style><h2>Potential impact</h2>
+<p>On QNX, a driver bug is not a crash dialog: it is a missed frame, a stalled actuator, or a device that never comes back.</p>
+<div class=g style="margin-top:30px">
+<div class=card><h3>trusted lengths</h3><p>devctl <code>nbytes</code> vs bytes sent: the classic overflow (BUG1)</p></div>
+<div class=card><h3>rare state</h3><p>faults only after a mode change, found by stateful sequences</p></div>
+<div class=card><h3>real-time</h3><p>deadline misses measured in <code>ClockCycles</code>, not just segfaults</p></div>
+<div class=card><h3>drop-in</h3><p>swap <code>buggy_rm</code> for your resmgr; dictionary from its header; CI on the Linux mock</p></div>
+</div>
+<p style="margin-top:34px;font-size:34px;color:#8b949e">Robustness testing of I/O handlers, in the spirit of ISO 26262 / IEC 62304</p></div>

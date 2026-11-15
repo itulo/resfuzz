@@ -1,0 +1,2 @@
+On QNX a driver bug is a stalled actuator, not a dialog.
+Swap in your own resmgr and run the same loop.

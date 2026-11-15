@@ -1,0 +1,2 @@
+A gdb backtrace from the QNX dumper core, through
+the resmgr layer, to buggy_logic.c line 112.

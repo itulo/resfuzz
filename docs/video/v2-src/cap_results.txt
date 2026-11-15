@@ -1,0 +1,2 @@
+Real results, reported honestly: 4/4 planted bugs found,
+and no false bugs claimed on the SDP's own pty driver.

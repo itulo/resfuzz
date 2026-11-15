@@ -1,0 +1,2 @@
+Each finding: bucket, signal, the 2-op reproducer
+and the backtrace, in one page.

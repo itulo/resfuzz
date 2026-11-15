@@ -1,0 +1,5 @@
+{"version": 2, "width": 72, "height": 15, "timestamp": 1794738245, "env": {"SHELL": null, "TERM": "dumb"}}
+[0.008015, "o", "\u001b[1;32m$\u001b[0m tail -f out/events.jsonl            # live, on QNX 8.0\r\n"]
+[0.976373, "o", "   13.2s  CRASH     SIGSEGV  DEVCTL     0xc0100543  3cf05774\r\n   16.3s  DEADLINE  649 ms   DEVCTL     0xc00c0544  0ccd5fc4\r\n   17.8s  DEADLINE  666 ms   DEVCTL     0xc00c0544  0ccd5fc4\r\n"]
+[8.616725, "o", "\u001b[1;32m$\u001b[0m cat out/stats.json\r\n"]
+[9.63022, "o", "  platform               qnx     elapsed_s             39.7\r\n  execs                14955     execs_per_s          376.3\r\n  edges                  107     crashes                 18\r\n  hangs                    0     deadline_misses         19\r\n  respawns                33     buckets                  5\r\n"]

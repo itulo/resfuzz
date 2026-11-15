@@ -1,0 +1,9 @@
+{"version": 2, "width": 72, "height": 15, "timestamp": 1794738284, "env": {"SHELL": null, "TERM": "dumb"}}
+[0.008258, "o", "\u001b[1;32m$\u001b[0m resfuzz decode bug1.seq | head -1\r\n"]
+[0.687359, "o", "sequence of 271 test cases (one server instance); last 3:\r\n"]
+[0.696547, "o", "\u001b[1;32m$\u001b[0m resfuzz decode bug1.seq.min        # minimised\r\n"]
+[1.377509, "o", "#0 DEVCTL_RAW a=0x80080540 b=0x00000004 len=8 data=41444d4e02000000\r\n#1 DEVCTL a=0x80200541 b=0x00000020 len=34 data=0000000000000000…\r\n"]
+[1.776265, "o", "\u001b[1;32m$\u001b[0m for i in 1 2 3; do resfuzz-agent --replay bug1.min; done  # QNX\r\n"]
+[2.886268, "o", "  replay 1: exit 10  (10 = crash)\r\n"]
+[2.991869, "o", "  replay 2: exit 10  (10 = crash)\r\n"]
+[3.100635, "o", "  replay 3: exit 10  (10 = crash)\r\n"]

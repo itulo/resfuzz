@@ -1,0 +1,2 @@
+BUG1 needs admin mode first: 271 recorded messages
+shrink to 2, and crash a fresh server 3 times out of 3.

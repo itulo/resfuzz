@@ -1,0 +1,2 @@
+The report: all four planted bugs, bucketed, minimised
+and replayed on a fresh server.

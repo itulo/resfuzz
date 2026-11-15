@@ -1,0 +1,2 @@
+QNX-native oracles: raw io_devctl headers that lie, TimerTimeout,
+ClockCycles deadlines, and real dumper cores.

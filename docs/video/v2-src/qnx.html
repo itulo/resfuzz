@@ -1,0 +1,18 @@
+<!doctype html><meta charset=utf-8><style>html,body{margin:0;width:1920px;height:1080px;background:#0d1117;color:#e6edf3;font-family:"DejaVu Sans",system-ui,sans-serif}
+.w{padding:50px 110px}h2{font-size:62px;margin:0 0 34px;color:#79c0ff}p,li{font-size:38px;line-height:1.45;color:#c9d1d9}
+code,pre{font-family:"DejaVu Sans Mono",monospace}code{color:#ffa657}b{color:#7ee787}
+pre{font-size:31px;line-height:1.38;background:#161b22;border:2px solid #30363d;border-radius:14px;padding:22px 30px;margin:0 0 26px;color:#e6edf3}
+.k{color:#ff7b72}.c{color:#8b949e}.hl{background:#3d2a00;outline:3px solid #ff9f1c}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:28px}.card{border:2px solid #30363d;border-radius:14px;padding:22px 30px}
+.card h3{font-size:38px;margin:0 0 10px;color:#ffa657}.card p{font-size:32px;margin:0}</style><div class=w><style>.card{padding:14px 26px}.card h3{font-size:34px;margin:0 0 4px}.card p{font-size:30px}.g{gap:20px}pre{margin:0 0 20px}h2{margin:0 0 24px}</style><h2>QNX-native, on the target</h2>
+<pre><span class=c>/* raw io_devctl: the header's nbytes may lie on purpose */</span>
+hdr.type = _IO_DEVCTL; hdr.dcmd = dcmd; <span class=hl>hdr.nbytes = claimed;</span>
+arm_timeout();                          <span class=c>/* TimerTimeout  */</span>
+st = <span class=hl>MsgSend(fd, &amp;m, sizeof m.hdr + len, &amp;r, rbytes)</span>;
+<span class=k>if</span> (st == -1) <span class=k>return</span> -errno;  <span class=c>/* ESRCH = server died */</span></pre>
+<div class=g>
+<div class=card><h3>deadline oracle</h3><p><code>ClockCycles()</code> ÷ <code>SYSPAGE_ENTRY(qtime)</code> cycles/s vs a µs budget</p></div>
+<div class=card><h3>hang oracle</h3><p><code>TimerTimeout</code> on every send, plus a watchdog</p></div>
+<div class=card><h3>crash oracle</h3><p><code>ESRCH</code> + <code>waitpid</code> confirm, real <code>dumper</code> core</p></div>
+<div class=card><h3>triage</h3><p><code>ntox86_64-gdb</code> backtrace through the QNX resmgr layer</p></div>
+</div></div>

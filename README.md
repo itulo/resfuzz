@@ -71,6 +71,12 @@ Results on QNX 8.0 under QEMU TCG (no KVM), coverage + QNX dictionary, deadline 
 |---|---|---|
 | run1, 300 s | ~267 | BUG3a (2 s), BUG2 (7 s), BUG1 (72 s), BUG3b hang (189 s) |
 | run3, 300 s | ~425 | BUG3a (4 s), BUG2 (96 s); BUG1 and BUG3b not reached |
+| **run5, 600 s** (15 Nov, ASLR-safe coverage, stateful replay, aligned field mutations) | ~227 | BUG3a deadline (8 s), BUG2 (13 s), BUG1 (173 s, stateful: 271-case history minimised to 2 ops), BUG3b hang (199 s) |
+
+Every run5 finding has a minimised reproducer that replays 3/3 on a fresh server, and a
+`dumper` core backtrace; the report, reproducers and backtraces are committed in
+[docs/results/qnx-run5](docs/results/qnx-run5/report.md). Bring the target up with
+`scripts/qnx-up.sh` (`--serial` for a console on COM2, `--stop` to shut it down).
 
 Backtraces come from QNX cores via `ntox86_64-gdb`. BUG1 depends on server state, so a
 fresh-server replay may not reproduce it (TODO-QNX F3).

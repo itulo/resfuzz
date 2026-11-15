@@ -24,7 +24,7 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 |---|---|---|
 | Built with the required developer tools | `qcc` / `mkqnximage` / `ntox86_64-gdb` from SDP 8.0 (`target/Makefile` `qnx`, `scripts/qnx-up.sh`, `host/resfuzz/qemu.py`) | ✅ |
 | Public GitHub/GitLab/Bitbucket repo with all source, assets and instructions; open-source licence detectable in the About section | Apache-2.0 `LICENSE` + `NOTICE` at the root. Repo is **local only** (no remote, nothing pushed) | ❌ owner: create the public repo and push before 15 Dec |
-| Repo shows it genuinely builds for/runs on QNX 8.0 | `target/platform/platform_qnx.c` (MsgSend, TimerTimeout, ClockCycles, name_open), `target/buggy_rm/buggy_rm.c` (resmgr/iofunc), `target/tests/qnx/*`, `scripts/qnx-image-snippets/*` (mkqnximage snippets), `target/examples/buggy_rm.qnx.dict` (dcmds resolved on QNX), QNX reports with QNX cores/backtraces | ✅ (commit one sample report under `docs/` before submitting) |
+| Repo shows it genuinely builds for/runs on QNX 8.0 | `target/platform/platform_qnx.c` (MsgSend, TimerTimeout, ClockCycles, name_open), `target/buggy_rm/buggy_rm.c` (resmgr/iofunc), `target/tests/qnx/*`, `scripts/qnx-image-snippets/*` (mkqnximage snippets), `target/examples/buggy_rm.qnx.dict` (dcmds resolved on QNX), and the committed QNX campaign [docs/results/qnx-run5](results/qnx-run5/report.md): report, minimised reproducers, gdb backtraces from QNX `dumper` cores (frames in QNXOS_805 `libc` resmgr code) | ✅ |
 | Build and run instructions naming QNX version, target and toolchain | README "On QNX" + `docs/TODO-QNX.md` header (SDP 8.0, QEMU x86_64, qcc gcc 12.2.0) | 🟡 fold into the codelab with exact commands |
 | Text description of features and functionality | README intro; Devpost write-up | ❌ Devpost text (draft from README + results) |
 | Demo video < 3 min, public on YouTube, footage of it running on the target, no third-party trademarks/copyrighted music without permission | — | ❌ record (plan below) |
@@ -38,7 +38,7 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 
 | Criterion | What judges look for | Evidence now | Gaps / next |
 |---|---|---|---|
-| **Technological Implementation** | well built, effective use of QNX 8.0, non-trivial, really builds/runs on QNX | portable C engine (RFZ1/RFS1 formats, mutator, corpus, ddmin minimiser, coverage + cmplog), QNX platform layer on native message passing, three oracles (crash via ESRCH/EBADF + waitpid, hang via TimerTimeout + watchdog + SIGABRT core, deadline via ClockCycles), stateful replay; 46 host tests + C unit/integration tests; every QNX assumption verified in `docs/TODO-QNX.md` (A-T, F1-F4) | fuzz one real QNX resmgr (e.g. an SDP sample or a small open-source driver) besides `buggy_rm` |
+| **Technological Implementation** | well built, effective use of QNX 8.0, non-trivial, really builds/runs on QNX | run5 on QNX found all four planted bugs in 600 s, each with a 1-2 op reproducer replaying 3/3 and a core backtrace (`docs/results/qnx-run5`); portable C engine (RFZ1/RFS1 formats, mutator, corpus, ddmin minimiser, coverage + cmplog), QNX platform layer on native message passing, three oracles (crash via ESRCH/EBADF + waitpid, hang via TimerTimeout + watchdog + SIGABRT core, deadline via ClockCycles), stateful replay; 46 host tests + C unit/integration tests; every QNX assumption verified in `docs/TODO-QNX.md` (A-T, F1-F4) | fuzz one real QNX resmgr (e.g. an SDP sample or a small open-source driver) besides `buggy_rm` |
 | **Design** | complete, coherent product, not just a proof of concept | one command boots/deploys/fuzzes/triages (`resfuzz run`), Markdown+HTML report with minimised reproducers, backtraces, severity, replay command; `qnx-up.sh`, `--serial` | screenshots of the HTML report; a `resfuzz init` or a config template per target; polish report wording |
 | **Potential Impact** | credible, specific case in a market QNX serves; why a real-time OS foundation matters | resource managers are QNX's drivers/services (automotive, medical, industrial); bugs found are the classes that matter there: trusted length fields, NULL deref on bad index, unbounded work on the server thread (deadline miss), hang | write the impact section (ISO 26262 / IEC 62304 robustness testing, fuzzing as a verification activity), measure time-to-bug |
 | **Innovation & AI Creativity** | creative, non-obvious use of QNX, genuine problem understanding | fuzzing *through* message passing (raw `_IO_DEVCTL` headers that lie about `nbytes`), a deadline oracle for real-time behaviour, stateful sequences, dictionary from headers resolved on target, optional LLM seed step that never invents dcmds | demonstrate the LLM seed step once and measure its effect; explain ASLR/PIE coverage finding |
@@ -56,5 +56,18 @@ Status: ✅ done and evidenced in this repo · 🟡 partly done · ❌ not done 
 2. Demo video (< 3 min) on YouTube, public.
 3. Devpost write-up (text description, QNX evidence list, category, links).
 4. Codelab: write from the outline, test on a clean box, publish; submit its URL.
-5. Commit one representative QNX report (Markdown/HTML) under `docs/results/` for judges who don't run it.
-6. Optional strength: a second, real resource manager as a target; LLM seed step demo.
+5. ~~Commit one representative QNX report~~ done: `docs/results/qnx-run5`.
+6. Screenshots/GIF of the HTML report and the `qnx-up.sh` boot for the README, video and Devpost.
+7. Optional strength: a second, real resource manager as a target; LLM seed step demo.
+
+## 6. Campaign evidence (run5, 15 Nov 2026, QNX 8.0 / QEMU x86_64 TCG, 600 s, coverage on)
+
+| Planted bug | Found at | Oracle | Minimised reproducer | Replays | Backtrace (top frame) |
+|---|---|---|---|---|---|
+| BUG3a deadline (COMPUTE slow path) | 7.7 s | deadline, 991 ms > 100 ms | 2 ops | 3/3 (exit 12) | n/a (no fault) |
+| BUG2 NULL deref (GET_STATS) | 12.6 s | crash, ESRCH + SIGSEGV | 1 op | 3/3 (exit 10) | `buggy_devctl` buggy_logic.c:124 |
+| BUG1 overflow (admin SET_NAME), stateful | 173.4 s | crash, ESRCH + SIGSEGV | 271-case history → 2 ops (SET_MODE "ADMN"/2, SET_NAME 34 B) | 3/3 (exit 10) | `buggy_devctl` buggy_logic.c:112 |
+| BUG3b hang (n+1 wraps) | 198.5 s | hang, TimerTimeout + SIGABRT core | 1 op | 3/3 (exit 11) | `compute` buggy_logic.c:77 |
+
+136,106 execs (227/s), 107 edges, 227 server restarts, 0 false-positive crashes (run4's EBADF
+false positive on a raw `_IO_OPENFD` is fixed in `target/src/exec.c`).

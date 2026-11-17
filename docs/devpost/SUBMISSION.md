@@ -128,7 +128,7 @@ stretch TCG or flash latency into a claimed defect:
 | Target | Time | Execs | Crashes / hangs | Deadlines |
 |---|---|---|---|---|
 | `devc-pty` (`/dev/ptyp0`) [`docs/results/qnx-pty1/`] | 300 s | 83,270 | **0 / 0** | 20 events, none reproducible (TCG noise) |
-| `devb-ram` (private `/dev/hd1`) [`docs/results/qnx-devb-ram1/`] | 120 s | 20,234 | **0** / 1, not reproducible | 8 events, none reproducible |
+| `devb-ram` (private `/dev/hd1`) [`docs/results/qnx-devb-ram1/`] | 120 s | 20,234 | **0** / 1, not reproducible | 9 events in 8 buckets, none reproducible |
 | `mqueue` (`/dev/mqueue/rfz`) [`docs/results/qnx-mqueue1/`] | 180 s | 59,087 | **0 / 0** | 2 events, none reproducible |
 | `devf-ram` (private `/dev/fs0p0`) [`docs/results/qnx-devf-ram1/`] | 240 s | 9,379 | **0 / 0** | 4 buckets (ERASE / FORMAT / WRITE) replay as slow successful flash ops under TCG (285 ms–1.80 s vs a 100 ms budget); not claimed as defects. One mid-run `setup_fail` + respawn followed a case that issued FORMAT and UMOUNT. |
 | `pipe` (system `/dev/pipe`, attach-only, `--nonblock`) [`docs/results/qnx-pipe1/`] | 300 s | 118,254 | **0 / 0** | 2 events, none reproducible. SSH stayed up; slaying `pipe` would break ssh/ksh. |

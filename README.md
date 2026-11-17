@@ -35,6 +35,13 @@ supposed to be real-time. resfuzz sends those messages for you, automatically an
   - It generates a resolver program that prints the real `dcmd` values on the target.
   - An optional LLM step can propose meaningful seed sequences. The model never invents dcmd values; suggestions are validated, and a documented stall on a small local model is disclosed rather than hidden ([ai-seeds](docs/results/ai-seeds/NOTES.md)).
 
+## Try it in one command
+
+```sh
+make -C target demo          # Linux only: finds the planted bugs against mock_rm (~90 s, no QNX)
+scripts/repro.sh             # full QNX 8.0 path: boot QEMU, 120 s campaign, same check
+```
+
 ## Layout
 
 ```

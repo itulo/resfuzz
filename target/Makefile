@@ -18,7 +18,7 @@ CORE_SRC := src/util.c src/rng.c src/testcase.c src/dict.c src/mutate.c src/corp
 LINUX_PLAT := platform/platform_linux.c platform/platform_posix_common.c
 BUGGY_INC  := -Ibuggy_rm -Iplatform/linux_compat
 
-.PHONY: all linux test qnx qnx-checks clean
+.PHONY: all linux test demo qnx qnx-checks clean
 all: linux
 
 $(BUILD):
@@ -42,6 +42,20 @@ $(BUILD)/unit_tests: tests/test_main.c $(CORE_SRC) $(LINUX_PLAT) | $(BUILD)
 
 test: $(BUILD)/unit_tests $(BUILD)/mock_rm_blind
 	MOCK_RM=$(BUILD)/mock_rm_blind $(BUILD)/unit_tests
+
+# Linux-only end-to-end: find the planted buggy_rm bugs against mock_rm (no QNX).
+# Creates .venv under the repo on first run. Override with DEMO_SECONDS / DEMO_OUT.
+DEMO_SECONDS ?= 90
+DEMO_SEED    ?= 7
+DEMO_OUT     ?= ../resfuzz-results/demo
+demo: linux
+	@repo=$$(cd .. && pwd); \
+	  if [ ! -x $$repo/.venv/bin/resfuzz ]; then \
+	    python3 -m venv $$repo/.venv && $$repo/.venv/bin/pip -q install -e $$repo/host; \
+	  fi; \
+	  $$repo/.venv/bin/resfuzz local --seconds $(DEMO_SECONDS) --seed $(DEMO_SEED) --out $(DEMO_OUT) && \
+	  $$repo/.venv/bin/python $$repo/scripts/check-demo.py $(DEMO_OUT)/report.md && \
+	  echo "demo: report $(DEMO_OUT)/report.html"
 
 # ---- QNX (verified with SDP 8.0) ----------------------------------------------------
 # qcc target selection per https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html

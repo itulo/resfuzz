@@ -1,0 +1,33 @@
+# Stock QNX 8.0 campaign: slog (no planted bugs).
+# Attach-only fuzz of /dev/slog (slogger2).
+#   scripts/qnx-up.sh
+#   python3 scripts/run-existing.py -c host/examples/qemu-slog.toml --host <ip> --seconds 1800
+out_dir = "resfuzz-results/qnx-slog1"
+
+[image]
+workdir = "qnx-image"
+arch = "x86_64"
+ssh_ident = "/home/me/.ssh/id_ed25519.pub"
+extra_args = ["--noprompt", "--data-size=512", "--data-inodes=65536"]
+
+[target]
+agent  = "target/build-qnx/resfuzz-agent"
+resmgr = "/home/me/qnx800/target/qnx/x86_64/usr/sbin/random"
+path   = "/dev/slog"
+spawn  = ""
+deploy_dir = "/data/resfuzz"
+dump_dir   = "/data/var/dumper"
+dicts = ["target/examples/dcmd_all.qnx.dict", "target/examples/dcmd_misc.qnx.dict"]
+gdb = "ntox86_64-gdb"
+
+[fuzz]
+seconds = 1800
+deadline_us = 100000
+hang_ms = 2000
+coverage = false
+agent_args = ["--nonblock"]
+# attach-only: slogger2; slaying it loses system logging.
+
+[ssh]
+user = "root"
+identity = "/home/me/.ssh/id_ed25519"

@@ -11,9 +11,9 @@
 | Project name | resfuzz |
 | Elevator pitch (≤200 chars) | A coverage-guided fuzzer for QNX 8.0 resource managers: it talks native message passing on the target, catches crashes, hangs and real-time deadline misses, and hands back minimal replayable bugs. |
 | Category (choose one) | **Developer Tooling & Host Tools** |
-| Public repository URL | **[owner]** GitHub URL (Apache-2.0 must show in the About section) |
-| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md`; current cut is v3.1 (2:09, narrated) |
-| Best Codelab/Tutorial URL | **[owner]** published URL of `docs/codelab/README.md` |
+| Public repository URL | https://github.com/itulo/resfuzz (Apache-2.0) |
+| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md`; current cut is v3.2 (2:09, narrated, closing card `github.com/itulo/resfuzz`) |
+| Best Codelab/Tutorial URL | https://github.com/itulo/resfuzz/blob/main/docs/codelab/README.md |
 | Bonus prizes entered | Best Codelab/Tutorial; Best Use of QNX-specific Technologies |
 | Built with (tags) | c, python, qnx, qnx-sdp-8.0, qcc, qemu, mkqnximage, gdb, sanitizercoverage, llama.cpp (optional) |
 | QNX version / target / toolchain | QNX SDP 8.0 (OS build 8.0.0 2026/06/05), `mkqnximage --type=qemu --arch=x86_64` under QEMU TCG, `qcc -Vgcc_ntox86_64` (gcc 12.2.0), `ntox86_64-gdb` |
@@ -236,7 +236,7 @@ validated seeds still replayed on QNX as crash / crash / hang
 ~60-minute path that starts on Linux with no QNX install (unit tests, mock
 server, local campaign) and ends on a QEMU QNX target fuzzing your own resource
 manager. A clean-clone run was timed and recorded [`docs/results/clean-run/`].
-The published URL is still an **[owner]** step.
+The published path is https://github.com/itulo/resfuzz/blob/main/docs/codelab/README.md.
 
 **Best Use of QNX-specific Technologies.** The table above is the evidence list:
 native message passing, on-target dcmd resolution, `name_open`, the real resmgr

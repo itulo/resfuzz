@@ -10,9 +10,10 @@ Two cuts live in `docs/video/` (both gitignored; rebuild from `v2-src/` / `v3-sr
 | v2 | `docs/video/v2.mp4` | 2:09 | captions only |
 | v3 | `docs/video/v3.mp4` | 2:09 | v2 picture plus spoken narration |
 | v3.1 | `docs/video/v3.1.mp4` | 2:09 | same flite `slt` track, louder/more even mix |
+| v3.2 | `docs/video/v3.2.mp4` | 2:09 | v3.1 audio and picture, closing card shows `github.com/itulo/resfuzz` |
 
 v3 narration is generated with the box's `flite` (voice `slt`, no large model
-download). The voice is clearly synthetic; treat v3 / v3.1 as a draft. A cleaner
+download). The voice is clearly synthetic; treat v3 / v3.1 / v3.2 as a draft. A cleaner
 human recording can replace the `flite` track later without changing the picture.
 Rebuild v3: `docs/video/v3-src/build.sh`. Rebuild v3.1 (remaster only, no
 re-synthesis): `docs/video/v3-src/build-v31.sh`. The title scene has only
@@ -36,7 +37,7 @@ Times below are the **v2/v3** scene lengths from `docs/video/v2-src/build.py`.
 | 9 | 1:25–1:34 | Card: real SDP `devc-pty` — 83,270 execs, 0 crashes, 0 hangs | "Pointed at the SDP's own pty driver, it found nothing, and says so." |
 | 10 | 1:34–1:49 | Impact card | "That honesty matters. Public QNX advisories have documented resource-manager bugs in the field. Teams can drop in their own server and run the same loop." |
 | 11 | 1:49–2:03 | Results card (run5 + AI seeds) | "An optional AI step proposes seeds. A validator keeps command numbers from the target, never from the model." |
-| 12 | 2:03–2:09 | Closing card: repo URL placeholder, codelab, Apache-2.0 | "Open source, with a one-hour codelab. resfuzz." |
+| 12 | 2:03–2:09 | Closing card: `github.com/itulo/resfuzz`, codelab, Apache-2.0 | "Open source, with a one-hour codelab. resfuzz." |
 
 The spoken line in shot 9 is still accurate for the pty campaign shown on
 screen. Later official stock campaigns (`devb-ram`, `mqueue`, `devf-ram`,
@@ -51,5 +52,4 @@ so it stays in sync with the 2:09 picture.
 - Shots 1, 2, 5, 9, 10, 11, 12: plain HTML cards rendered to PNG — text only.
 - Avoid: QNX/BlackBerry logos, Devpost branding, any music. The word "QNX" in
   text is a factual product reference (with the trademark note in the README).
-- Final cut: replace the closing-card placeholder with the real GitHub URL
-  once the repo is public.
+- Closing card shows the public repo URL `github.com/itulo/resfuzz` (v3.2).

@@ -1,0 +1,16 @@
+<html><head><link rel=stylesheet href=style.css></head><body><div class=wrap>
+<h2>From QNX <span class=acc>dumper</span> core to source line</h2>
+<div class=term style="font-size:23px"><span class=p>$</span> ntox86_64-gdb buggy_rm buggy_rm.core -batch -ex bt
+Program terminated with signal SIGSEGV, Segmentation fault.
+<span class=hl>#0  buggy_devctl at buggy_logic.c:112</span>
+<span class=c>112   st.id.name[st.id.cfg->max_len - 1] = '\0';</span>
+#1  io_devctl at buggy_rm.c:108
+#2  io_devctl at buggy_rm.c:75
+#3  _resmgr_invoke_handler at libc/resmgr/_resmgr_io_handler.c:68
+#4  _resmgr_io_handler at libc/resmgr/_resmgr_io_handler.c:308
+#5  _resmgr_handler at libc/resmgr/_resmgr_handler.c:198
+#6  _resmgr_msg_handler at libc/dispatch/resmgr.c:311
+#7  main at buggy_rm.c:154</div>
+<p class=sub style="margin-top:30px">Every crash and hang bucket comes with a core from the target and a host-side backtrace through QNX's own resmgr dispatch code.</p>
+<div class=foot><span>Recorded on QNX 8.0 · QEMU x86_64 · TCG</span><span>Source: docs/results/qnx-run5/backtraces/38d435f06c3e3629.bt.txt</span></div>
+</div></body></html>

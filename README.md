@@ -1,5 +1,7 @@
 # resfuzz
 
+[![ci](https://github.com/itulo/resfuzz/actions/workflows/ci.yml/badge.svg)](https://github.com/itulo/resfuzz/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 **Fuzz QNX 8.0 resource managers through message passing, from a Linux host.**
 
 > Status: entry for the QNX Global Hackathon (Developer Tooling & Host Tools).

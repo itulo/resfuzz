@@ -1,0 +1,12 @@
+<html><head><link rel=stylesheet href=style.css>
+<style>.row{display:flex;gap:30px;align-items:stretch}.box{flex:1;background:#161b22;border:1px solid #30363d;border-radius:16px;padding:26px 30px;font-size:25px;line-height:1.5}.box h3{margin:0 0 12px;font-size:30px;color:#79c0ff}.arrow{align-self:center;font-size:56px;color:#f0a030}code{font-family:"DejaVu Sans Mono";font-size:22px;color:#f0a030}</style></head><body><div class=wrap>
+<h2>How it works</h2>
+<div class=row>
+<div class=box><h3>Host (Linux)</h3><code>resfuzz run -c campaign.toml</code><br>· mkqnximage image + QEMU (TCG)<br>· deploy agent over ssh<br>· triage, bucket, minimise<br>· core → backtrace via <code>ntox86_64-gdb</code><br>· Markdown + HTML report</div>
+<div class=arrow>⇄</div>
+<div class=box><h3>QNX 8.0 target</h3><code>resfuzz-agent</code> (built with qcc)<br>· mutates open / read / write / lseek / devctl<br>· raw <code>MsgSend</code>, hand-built <code>io_devctl_t</code> with lying <code>nbytes</code><br>· dcmds resolved on target from <code>&lt;devctl.h&gt;</code></div>
+<div class=arrow>→</div>
+<div class=box><h3>Resource manager under test</h3>spawned privately, or attach-only for system services (<code>pipe</code>, <code>random</code>)<br><br>Oracles:<br>· <b>crash</b>: errno + <code>waitpid</code><br>· <b>hang</b>: <code>TimerTimeout</code> + watchdog core<br>· <b>deadline</b>: <code>ClockCycles</code> vs budget</div>
+</div>
+<div class=foot><span>github.com/itulo/resfuzz</span><span>Source: target/platform/platform_qnx.c · host/resfuzz/</span></div>
+</div></body></html>

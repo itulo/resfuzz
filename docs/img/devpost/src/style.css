@@ -1,0 +1,18 @@
+html,body{margin:0;width:1500px;height:1000px;overflow:hidden;background:#0d1117;color:#e6edf3;font-family:"Noto Sans","DejaVu Sans",sans-serif}
+.wrap{padding:64px 80px;box-sizing:border-box;height:1000px;display:flex;flex-direction:column}
+h1{font-size:64px;margin:0 0 8px;letter-spacing:-1px}
+h2{font-size:44px;margin:0 0 28px;font-weight:700}
+.sub{font-size:30px;color:#9da7b3;margin:0 0 36px;line-height:1.35}
+.acc{color:#f0a030}
+.term{background:#161b22;border:1px solid #30363d;border-radius:14px;padding:30px 36px;font-family:"DejaVu Sans Mono",monospace;font-size:25px;line-height:1.55;white-space:pre;overflow:hidden}
+.p{color:#3fb950;font-weight:bold}.c{color:#8b949e}.hl{color:#f0a030;font-weight:bold}
+.foot{margin-top:auto;font-size:22px;color:#8b949e;display:flex;justify-content:space-between}
+table{border-collapse:collapse;font-size:25px;width:100%}
+td,th{border-bottom:1px solid #30363d;padding:13px 14px;text-align:left}
+th{color:#9da7b3;font-weight:600}
+.ok{color:#3fb950;font-weight:bold}
+.pill{display:inline-block;background:#1f6feb33;border:1px solid #1f6feb;color:#79c0ff;border-radius:999px;padding:6px 18px;font-size:22px;margin:0 10px 10px 0}
+.stats{display:flex;gap:28px;margin:10px 0 30px}
+.stat{flex:1;background:#161b22;border:1px solid #30363d;border-radius:16px;padding:26px 28px}
+.stat b{display:block;font-size:54px;color:#f0a030}
+.stat span{font-size:23px;color:#9da7b3}

@@ -1,0 +1,24 @@
+# Runs the parts of resfuzz that need no QNX SDP: the C engine against the Linux
+# stub platform and mock resource manager, and the Python host tests.
+# The QNX 8.0 on-target runs are recorded under docs/results/ (the SDP is licensed
+# per user and is not available on hosted runners).
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  linux-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: C engine tests (Linux stub + mock server, ASan/UBSan)
+        run: make -C target test
+      - name: Host tests
+        run: |
+          python -m pip install -e host pytest
+          pytest -q host/tests

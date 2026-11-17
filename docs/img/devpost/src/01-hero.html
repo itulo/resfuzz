@@ -1,0 +1,12 @@
+<html><head><link rel=stylesheet href=style.css></head><body><div class=wrap>
+<div style="font-size:26px;color:#79c0ff;margin-bottom:18px">QNX Global Hackathon · Developer Tooling &amp; Host Tools</div>
+<h1 style="font-size:110px">resfuzz</h1>
+<p class=sub style="font-size:36px;color:#e6edf3">A coverage-guided fuzzer for <span class=acc>QNX 8.0 resource managers</span>.<br>Native message passing on the target · crash, hang and deadline-miss oracles · minimal replayable bugs.</p>
+<div class=stats>
+<div class=stat><b>4 / 4</b><span>planted bugs found in a 600 s run on QNX 8.0 (QEMU, TCG)</span></div>
+<div class=stat><b>271 → 2</b><span>recorded messages minimised to a 2-op reproducer</span></div>
+<div class=stat><b>3 / 3</b><span>replays of each minimised bug on a fresh server</span></div>
+</div>
+<div><span class=pill>MsgSend / io_devctl_t</span><span class=pill>TimerTimeout</span><span class=pill>ClockCycles</span><span class=pill>dumper + ntox86_64-gdb</span><span class=pill>mkqnximage</span><span class=pill>SanitizerCoverage</span></div>
+<div class=foot><span>github.com/itulo/resfuzz · Apache-2.0</span><span>Source: docs/results/qnx-run5/</span></div>
+</div></body></html>

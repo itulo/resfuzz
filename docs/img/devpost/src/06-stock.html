@@ -1,0 +1,12 @@
+<html><head><link rel=stylesheet href=style.css></head><body><div class=wrap>
+<h2>Pointed at six unmodified QNX 8.0 services</h2>
+<table><tr><th>Target</th><th>Mode</th><th>Time</th><th>Execs</th><th>Crashes / hangs (reproducible)</th></tr>
+<tr><td>devc-pty <span class=c>/dev/ptyp0</span></td><td>spawn</td><td>300 s</td><td>83,270</td><td class=ok>0 / 0</td></tr>
+<tr><td>devb-ram <span class=c>/dev/hd1</span></td><td>spawn (rmwrap)</td><td>122 s</td><td>20,234</td><td class=ok>0 / 0 <span class=c style="font-weight:normal">(1 hang, not reproducible)</span></td></tr>
+<tr><td>mqueue <span class=c>/dev/mqueue/rfz</span></td><td>spawn (mqwrap)</td><td>180 s</td><td>59,087</td><td class=ok>0 / 0</td></tr>
+<tr><td>devf-ram <span class=c>/dev/fs0p0</span></td><td>spawn (rmwrap)</td><td>241 s</td><td>9,379</td><td class=ok>0 / 0</td></tr>
+<tr><td>pipe <span class=c>/dev/pipe</span></td><td>attach-only</td><td>300 s</td><td>118,254</td><td class=ok>0 / 0</td></tr>
+<tr><td>random <span class=c>/dev/random</span></td><td>attach-only</td><td>180 s</td><td>62,234</td><td class=ok>0 / 0</td></tr></table>
+<p class=sub style="margin-top:30px">Same campaign path as the demo target: closed binaries, daemonizing drivers and services that must not be killed. Deadline events under TCG were replayed and are not claimed as defects.</p>
+<div class=foot><span>QNX 8.0 · QEMU x86_64 · TCG</span><span>Source: docs/results/qnx-{pty1,devb-ram1,mqueue1,devf-ram1,pipe1,random1}/stats.json</span></div>
+</div></body></html>

@@ -1,0 +1,14 @@
+<html><head><link rel=stylesheet href=style.css></head><body><div class=wrap>
+<h2>A stateful bug, minimised: <span class=acc>271 messages → 2</span></h2>
+<div class=term><span class=p>$</span> resfuzz decode bug1.seq | head -1
+sequence of 271 test cases (one server instance); last 3:
+<span class=p>$</span> resfuzz decode bug1.seq.min        <span class=c># minimised</span>
+<span class=hl>#0 DEVCTL_RAW a=0x80080540 b=0x00000004 len=8 data=41444d4e02000000</span>
+<span class=hl>#1 DEVCTL a=0x80200541 b=0x00000020 len=34 data=0000000000000000…</span>
+<span class=p>$</span> for i in 1 2 3; do resfuzz-agent --replay bug1.min; done  <span class=c># QNX</span>
+  replay 1: exit 10  (10 = crash)
+  replay 2: exit 10  (10 = crash)
+  replay 3: exit 10  (10 = crash)</div>
+<p class=sub style="margin-top:30px">BUG1 needs admin mode first. resfuzz records the server's history, proves it reproduces on a fresh server, then delta-debugs it down to 2 ops.</p>
+<div class=foot><span>Recorded on QNX 8.0 · QEMU x86_64 · TCG</span><span>Source: docs/results/qnx-run5/min/ · docs/video/v2-src/bug1.cast</span></div>
+</div></body></html>

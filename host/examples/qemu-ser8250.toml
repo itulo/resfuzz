@@ -14,7 +14,7 @@ extra_args = ["--noprompt", "--data-size=512", "--data-inodes=65536"]
 agent  = "target/build-qnx/resfuzz-agent"
 resmgr = "/home/me/qnx800/target/qnx/x86_64/sbin/devc-ser8250"
 path   = "/dev/ser3"
-spawn  = "/data/resfuzz/rmwrap --wait /dev/ser3 --name devc-ser8250 -- /data/resfuzz/devc-ser8250 -u3 -e -b115200"
+spawn  = "/data/resfuzz/rmwrap --wait /dev/ser3 --name ser3drv -- /data/resfuzz/devc-ser8250 -u3 -e -b115200 -o nodaemon"
 deploy_dir = "/data/resfuzz"
 dump_dir   = "/data/var/dumper"
 dicts = ["target/examples/dcmd_chr.qnx.dict", "target/examples/dcmd_all.qnx.dict"]

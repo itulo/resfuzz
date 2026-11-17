@@ -67,10 +67,12 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
 
     rf_plat_set_call_timeout_ns(cfg->hang_ns);
 
-    /* Implicit open of slot 0 unless the test case starts by opening it. */
+    /* Implicit open of slot 0 unless the test case starts by opening it.
+     * Try RDWR, then RDONLY, then WRONLY so write-only devices like /dev/slog work. */
     if (!(tc->nops && tc->ops[0].kind == RF_OP_OPEN && (tc->ops[0].flags & 3u) == 0)) {
         int r = rf_plat_open(&conns[0], cfg->target, 2);
-        if (r == -EACCES || r == -EPERM) { r = rf_plat_open(&conns[0], cfg->target, 0); omode[0] = 0; }
+        if (r < 0) { r = rf_plat_open(&conns[0], cfg->target, 0); omode[0] = 0; }
+        if (r < 0) { r = rf_plat_open(&conns[0], cfg->target, 1); omode[0] = 1; }
         if (r < 0) {
             res->kind = RF_RES_SETUP_FAIL;
             res->err = -r;
@@ -161,6 +163,19 @@ int rf_exec(const rf_exec_cfg *cfg, const rf_tc *tc, rf_result *res)
                 }
                 if (polled == 0) { res->ops_err++; continue; }   /* still alive: an ordinary error */
                 child_reaped = polled == 1;
+            } else if (cfg->target) {
+                /* Attach-only: we do not own a pid. Re-open the path; if that
+                 * still works the server is alive and EBADF/ESRCH was a reply. */
+                rf_conn probe;
+                memset(&probe, 0, sizeof probe);
+                int pr = rf_plat_open(&probe, cfg->target, 2);
+                if (pr < 0) pr = rf_plat_open(&probe, cfg->target, 0);
+                if (pr < 0) pr = rf_plat_open(&probe, cfg->target, 1);
+                if (pr == 0) {
+                    rf_plat_close(&probe);
+                    res->ops_err++;
+                    continue;
+                }
             }
             res->kind = RF_RES_CRASH;
             res->op_index = (int)i;

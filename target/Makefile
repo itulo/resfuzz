@@ -45,7 +45,7 @@ test: $(BUILD)/unit_tests $(BUILD)/mock_rm_blind
 
 # Linux-only end-to-end: find the planted buggy_rm bugs against mock_rm (no QNX).
 # Creates .venv under the repo on first run. Override with DEMO_SECONDS / DEMO_OUT.
-DEMO_SECONDS ?= 90
+DEMO_SECONDS ?= 45
 DEMO_SEED    ?= 7
 DEMO_OUT     ?= ../resfuzz-results/demo
 demo: linux
@@ -53,7 +53,8 @@ demo: linux
 	  if [ ! -x $$repo/.venv/bin/resfuzz ]; then \
 	    python3 -m venv $$repo/.venv && $$repo/.venv/bin/pip -q install -e $$repo/host; \
 	  fi; \
-	  $$repo/.venv/bin/resfuzz local --seconds $(DEMO_SECONDS) --seed $(DEMO_SEED) --out $(DEMO_OUT) && \
+	  $$repo/.venv/bin/resfuzz local --seconds $(DEMO_SECONDS) --seed $(DEMO_SEED) \
+	    --corpus $$repo/target/examples/demo_corpus --out $(DEMO_OUT) && \
 	  $$repo/.venv/bin/python $$repo/scripts/check-demo.py $(DEMO_OUT)/report.md && \
 	  echo "demo: report $(DEMO_OUT)/report.html"
 

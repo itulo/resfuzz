@@ -83,13 +83,14 @@ def _resolve_local(path: str, out: Path) -> Path:
 class LocalCampaign:
     def __init__(self, repo_root: str | Path, out_dir: str | Path, *, seconds: int = 30, coverage: bool = True,
                  deadline_us: int = 5000, hang_ms: int = 1000, seed: int | None = None, dicts=None,
-                 minimize: bool = True, runner: Runner = run_subprocess):
+                 minimize: bool = True, corpus: str | None = None, runner: Runner = run_subprocess):
         self.root = Path(repo_root)
         self.tdir = self.root / "target"
         self.build_dir = self.tdir / "build"
         self.out = Path(out_dir)
         self.seconds, self.coverage, self.deadline_us, self.hang_ms = seconds, coverage, deadline_us, hang_ms
         self.seed, self.minimize, self.runner = seed, minimize, runner
+        self.corpus = corpus
         self.dicts = [str(d) for d in (dicts if dicts is not None else [self.tdir / "examples" / "buggy_rm.dict"])]
         self.sock = str(Path(tempfile.gettempdir()) / f"resfuzz_mock_{abs(hash(str(self.out))) % 10**8}.sock")
 
@@ -109,7 +110,7 @@ class LocalCampaign:
         self.out.mkdir(parents=True, exist_ok=True)
         argv = [self.agent] + agent_args(self.sock, str(self.out), spawn=self.spawn, cov=self.coverage,
                                          dicts=self.dicts, seconds=self.seconds, deadline_us=self.deadline_us,
-                                         hang_ms=self.hang_ms, seed=self.seed)
+                                         hang_ms=self.hang_ms, seed=self.seed, corpus=self.corpus)
         return self.runner(argv, timeout=self.seconds + 120)
 
     def minimize_finding(self, f: Finding) -> None:

@@ -28,7 +28,7 @@ def _cfg(args) -> Config:
 def cmd_local(a) -> int:
     camp = LocalCampaign(REPO, a.out, seconds=a.seconds, coverage=not a.no_cov, seed=a.seed,
                          deadline_us=a.deadline_us, hang_ms=a.hang_ms, minimize=not a.no_minimize,
-                         dicts=a.dict if a.dict else None)
+                         dicts=a.dict if a.dict else None, corpus=a.corpus)
     res = camp.run_all(build=not a.no_build)
     print(json.dumps({"summary": summarize(res.findings), "execs": res.stats.get("execs"),
                       "report": str(res.report_html)}, indent=2))
@@ -142,6 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-cov", action="store_true")
     s.add_argument("--no-build", action="store_true")
     s.add_argument("--no-minimize", action="store_true")
+    s.add_argument("--corpus", help="directory of .rfz/.seq seeds to load before mutating")
     s.set_defaults(fn=cmd_local)
 
     for name, fn, hlp in (("deploy", cmd_deploy, "copy agent + resource manager to the QNX target"),

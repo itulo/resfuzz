@@ -3,24 +3,34 @@
 Format: 1920×1080, captions burned in, **no music, no third-party logos**.
 All terminal footage is real output from QNX 8.0 under QEMU (TCG).
 
-Two cuts live in `docs/video/` (both gitignored; rebuild from `v2-src/` / `v3-src/`):
+Cuts live in `docs/video/` (mp4 files are gitignored; rebuild from `v2-src/` / `v3-src/` / `v4-src/`):
 
 | Cut | File | Duration | Audio |
 |---|---|---|---|
 | v2 | `docs/video/v2.mp4` | 2:09 | captions only |
-| v3 | `docs/video/v3.mp4` | 2:09 | v2 picture plus spoken narration |
+| v3 | `docs/video/v3.mp4` | 2:09 | v2 picture plus spoken narration (flite `slt`) |
 | v3.1 | `docs/video/v3.1.mp4` | 2:09 | same flite `slt` track, louder/more even mix |
 | v3.2 | `docs/video/v3.2.mp4` | 2:09 | v3.1 audio and picture, closing card shows `github.com/itulo/resfuzz` |
+| v4 | `docs/video/v4.mp4` | 2:09 | v3.2 picture (video bitstream unchanged) plus Kokoro `af_heart` narration |
 
-v3 narration is generated with the box's `flite` (voice `slt`, no large model
-download). The voice is clearly synthetic; treat v3 / v3.1 / v3.2 as a draft. A cleaner
-human recording can replace the `flite` track later without changing the picture.
-Rebuild v3: `docs/video/v3-src/build.sh`. Rebuild v3.1 (remaster only, no
-re-synthesis): `docs/video/v3-src/build-v31.sh`. The title scene has only
-40 ms of slack (flite `slt` speaks it in 4.96 s of a 5.00 s pad). The other
-built-in voices (`rms`, `awb`, `kal`) and `duration_stretch=1.1` all run
-past 5 s and would be cut off, so v3.1 keeps `slt` and only raises and evens
-the existing mix (`loudnorm` to −14 LUFS, true peak −1.5 dB; about 2.7 dB louder than v3, peaks still under −1.3 dB).
+v3 / v3.1 / v3.2 use the box's `flite` (voice `slt`). That track is clearly
+robotic. v4 replaces only the audio, with the same scene timings and the same
+picture as v3.2 (including the public repo URL on the close card).
+
+v4 voice: Kokoro-82M ONNX, speaker `af_heart`, via `kokoro-onnx` (free, local,
+no account). Piper was tried first (`en_US-lessac-medium`, `en_US-ryan-high`,
+`en_GB-alan-medium`); lessac and ryan can fit the 5 s title at near-natural
+speed, but Kokoro is the more natural neural voice of the two tools, and
+`af_heart` is the usual first choice among its English speakers. `edge-tts`
+was not used. Spoken lines match the table below, with a few pronunciation
+spellings in `docs/video/v4-src/lines.tsv` (notably `P-T-Y`, so it is not
+read as "tie"; "dev control"; "two hundred and seventy-one"; "code lab").
+Only the title line is slightly sped up (about 1.10×) to fit the 5 s pad;
+the other eleven lines play at natural speed and are padded with trailing
+silence. Loudness: two-pass `loudnorm` to −14 LUFS with a −1.5 dBTP wav
+target so the AAC encode stays at or under −1 dBTP. Rebuild:
+`docs/video/v4-src/build.sh` (needs `kokoro-onnx` and ~338 MB of model files
+in `$KOKORO_DIR`, default `~/.cache/resfuzz-kokoro`).
 
 Times below are the **v2/v3** scene lengths from `docs/video/v2-src/build.py`.
 

@@ -12,7 +12,7 @@
 | Elevator pitch (≤200 chars) | A coverage-guided fuzzer for QNX 8.0 resource managers: it talks native message passing on the target, catches crashes, hangs and real-time deadline misses, and hands back minimal replayable bugs. |
 | Category (choose one) | **Developer Tooling & Host Tools** |
 | Public repository URL | https://github.com/itulo/resfuzz (Apache-2.0) |
-| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md`; current cut is v3.2 (2:09, narrated, closing card `github.com/itulo/resfuzz`) |
+| Demo video (YouTube, public, < 3 min) | **[owner]** URL — script in `docs/video/SCRIPT.md`; current cut is v4 (2:09, Kokoro narration, closing card `github.com/itulo/resfuzz`) |
 | Best Codelab/Tutorial URL | https://github.com/itulo/resfuzz/blob/main/docs/codelab/README.md |
 | Bonus prizes entered | Best Codelab/Tutorial; Best Use of QNX-specific Technologies |
 | Built with (tags) | c, python, qnx, qnx-sdp-8.0, qcc, qemu, mkqnximage, gdb, sanitizercoverage, llama.cpp (optional) |

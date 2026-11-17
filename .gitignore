@@ -13,3 +13,6 @@ target/examples/mqwrap
 target/examples/rmwrap
 docs/video/v3-src/*.wav
 docs/video/v3-src/concat.txt
+docs/video/v4-src/*.wav
+docs/video/v4-src/concat.txt
+docs/video/v4-src/*.json

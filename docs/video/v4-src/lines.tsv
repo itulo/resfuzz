@@ -1,0 +1,12 @@
+title	5	resfuzz finds crashes, hangs and deadline misses in QNX resource managers.
+iface	11	On QNX, drivers and services are resource managers. Every client reaches them by message passing. resfuzz attacks that interface on the real operating system.
+boot	7	One script builds a QEMU target, boots it headless under TCG, and waits for SSH.
+live	14	The agent runs on QNX next to the server. It mutates open, read, write, dev control and raw messages, with coverage feedback.
+qnx	16	It uses native message passing, Clock Cycles for deadlines, Timer Timeout for hangs, and dumper cores for backtraces.
+r1	9	Ten minutes in, all four planted bugs: a deadline miss, a null dereference, a hang, and a stateful overflow.
+bug1	13	The overflow only happens after admin mode. resfuzz recorded two hundred and seventy-one messages and shrank them to two. They crash a fresh server every time.
+bt	10	Every crash and hang comes with a dumper core and a backtrace through QNX's own resource manager layer.
+r2	9	Pointed at the SDP's own P-T-Y driver, it found nothing, and says so.
+impact	15	That honesty matters. Public QNX advisories have documented resource manager bugs in the field. Teams can drop in their own server and run the same loop.
+results	14	An optional AI step proposes seeds. A validator keeps command numbers from the target, never from the model.
+close	6	Open source, with a one-hour code lab. resfuzz.
